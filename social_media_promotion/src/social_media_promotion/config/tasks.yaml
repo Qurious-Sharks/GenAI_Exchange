@@ -1,0 +1,79 @@
+storytelling_task:
+  description: >
+    Research and narrate a captivating story about {user} and their craft. 
+    Highlight the struggles, dedication, and artistry behind their product, 
+    making the narrative relatable and emotionally engaging for a social media audience.
+    Your story will become the foundation for all subsequent content.
+  expected_output: >
+    A compelling, emotionally engaging story (3-5 paragraphs) about {user} and their craft,
+    written in a tone suitable for Instagram and WhatsApp storytelling.
+  agent: storyteller
+
+summarize_product_task:
+  description: >
+    Take the product details provided by {user} and summarize them into a concise yet complete 
+    description, including all features, unique selling points, and benefits. 
+    This will serve as a quick reference for responders and content creators.
+  expected_output: >
+    A clear, 3-5 sentence product summary highlighting all key features and benefits.
+  agent: summarizer
+
+instagram_post_task:
+  description: >
+    Based on the storyteller's narrative and summarizer's product details, create an engaging 
+    Instagram post that resonates with the audience. 
+    If {image_path} is provided by {user}, use that image with a creative caption. 
+    If {image_path} is empty, generate a photorealistic, eye-catching image prompt with **Imagen**, 
+    accompanied by a caption that integrates the story and product details.
+  expected_output: >
+    An Instagram post consisting of:
+    - Caption text (2-3 short engaging paragraphs with hashtags).
+    - Either the provided image path {image_path} OR a generated image prompt for Imagen 
+      that best represents {user}'s product and story.
+  agent: instagram_post_generator
+
+instagram_reel_task:
+  description: >
+    Using the storyteller's narrative, summarizer's product details, and {image_path} if provided, 
+    create a prompt for **Veo 3** that generates a highly engaging short Instagram Reel. 
+    If {image_path} exists, incorporate it as a visual reference or opening scene. 
+    If not, focus purely on storytelling, mood, and product highlights.
+  expected_output: >
+    - A **Veo 3 prompt** optimized for creating a 15–30 second Instagram Reel.
+    - If {image_path} exists, instructions on how it should appear in the video.  
+    - Clear description of the desired visual style, pacing, background audio or music, 
+      and text overlays.
+  agent: instagram_reel_creator
+
+whatsapp_status_task:
+  description: >
+    Using the storyteller's narrative, summarizer's product details, and {image_path} if provided, 
+    create a prompt for **Veo 3** that generates a short WhatsApp Status video (15–20 seconds). 
+    If {image_path} exists, incorporate it to add authenticity. 
+    The video should be simple, authentic, and emotionally appealing to viewers 
+    while promoting {user}'s product effectively.
+  expected_output: >
+    - A **Veo 3 prompt** tailored for a WhatsApp Status video (casual, authentic feel).  
+    - If {image_path} exists, directions on how it should appear in the video.  
+    - Clear guidance on scene progression, captions, and emotional tone.
+  agent: whatsapp_status_generator
+
+instagram_response_task:
+  description: >
+    Respond to Instagram user queries about {user}'s product in a friendly and helpful tone. 
+    Use the summarizer's product description and the storyteller's narrative 
+    to ensure the responses are informative yet engaging.
+  expected_output: >
+    A conversational and empathetic response (2-3 sentences) 
+    that answers the user's query and encourages them to explore or buy the product.
+  agent: instagram_responder
+
+whatsapp_response_task:
+  description: >
+    Respond to WhatsApp user queries about {user}'s product in a friendly and helpful tone. 
+    Use the summarizer's product description and the storyteller's narrative 
+    to ensure responses feel personal, authentic, and encouraging.
+  expected_output: >
+    A warm, conversational response (2-3 sentences) 
+    that directly addresses the query and motivates the user to trust and purchase {user}'s product.
+  agent: whatsapp_responder
