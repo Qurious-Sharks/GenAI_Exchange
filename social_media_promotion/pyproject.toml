@@ -8,6 +8,11 @@ dependencies = [
     "crewai[tools]>=0.150.0,<1.0.0"
 ]
 
+[project.optional-dependencies]
+genai = [
+    "google-genai>=0.3.0"
+]
+
 [project.scripts]
 social_media_promotion = "social_media_promotion.main:run"
 run_crew = "social_media_promotion.main:run"
