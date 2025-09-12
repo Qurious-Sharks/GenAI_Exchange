@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai.project import CrewBase, agent, crew, task
 from crewai.tools import tool
+from crewai_tools import WebsiteSearchTool
+
+
 # Memory features removed
 from pydantic import BaseModel
 from datetime import datetime as DateTime
@@ -32,6 +35,16 @@ gapi = os.getenv("GEMINI_API_KEY")
 class Captionoutput(BaseModel):
     caption: str
     contact_info: str
+
+wstool = WebsiteSearchTool(config = dict(llm = dict(
+    provider = "google",
+    config = dict(model = "gemini/gemini-2.5-flash"),
+), embedder = dict(
+    provider = "google",
+    config = dict(
+        model = "models/gemini-embedding-001"
+    ),
+),),website = "https://www.powtoon.com/blog/veo-3-video-prompt-examples/")
 
 @CrewBase
 class SocialMediaPromotion():
@@ -120,6 +133,7 @@ class SocialMediaPromotion():
         config['backstory'] = config['backstory'].format(**self._get_inputs)
         return Agent(
             config=config,
+            tools = [wstool],
             verbose=True,
         )
 

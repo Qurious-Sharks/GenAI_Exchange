@@ -11,7 +11,8 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 BUSINESS_CONNECTION_ID = os.getenv("BUSINESS_CONNECTION_ID")
-FFMPEG_PATH = r"F:\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin"
+# FFmpeg configuration - try to find ffmpeg in common locations
+FFMPEG_PATH = os.getenv("FFMPEG_PATH", r"F:\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin")
 BASE_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 def _fit_image_for_story(image_path, output_path, target_size=(1080, 1920)):
@@ -28,35 +29,80 @@ def _fit_image_for_story(image_path, output_path, target_size=(1080, 1920)):
 
 def _process_video_for_story(input_path, output_path, target_size=(720, 1280)):
     """Internal helper to fit a video to story dimensions."""
-    ffmpeg_cmd = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') if FFMPEG_PATH else 'ffmpeg'
-    ffprobe_cmd = os.path.join(FFMPEG_PATH, 'ffprobe.exe') if FFMPEG_PATH else 'ffprobe'
+    import shutil
+    
+    # Try to find ffmpeg and ffprobe executables
+    ffmpeg_cmd = None
+    ffprobe_cmd = None
+    
+    # First try the configured path
+    if FFMPEG_PATH and os.path.exists(FFMPEG_PATH):
+        ffmpeg_cmd = os.path.join(FFMPEG_PATH, 'ffmpeg.exe') if os.name == 'nt' else os.path.join(FFMPEG_PATH, 'ffmpeg')
+        ffprobe_cmd = os.path.join(FFMPEG_PATH, 'ffprobe.exe') if os.name == 'nt' else os.path.join(FFMPEG_PATH, 'ffprobe')
+        
+        # Check if executables exist
+        if not os.path.exists(ffmpeg_cmd):
+            ffmpeg_cmd = None
+        if not os.path.exists(ffprobe_cmd):
+            ffprobe_cmd = None
+    
+    # Fallback to system PATH
+    if not ffmpeg_cmd:
+        ffmpeg_cmd = shutil.which('ffmpeg')
+    if not ffprobe_cmd:
+        ffprobe_cmd = shutil.which('ffprobe')
+    
+    # If still not found, try without extension
+    if not ffmpeg_cmd:
+        ffmpeg_cmd = 'ffmpeg'
+    if not ffprobe_cmd:
+        ffprobe_cmd = 'ffprobe'
+    
     try:
+        # Check if input file exists
+        if not os.path.exists(input_path):
+            print(f"Input video file not found: {input_path}")
+            return False
+            
+        # Probe the video
         probe = ffmpeg.probe(input_path, cmd=ffprobe_cmd)
         has_audio = any(s['codec_type'] == 'audio' for s in probe['streams'])
+        
         input_stream = ffmpeg.input(input_path)
         video_stream = (
             input_stream['v:0']
             .filter('scale', target_size[0], target_size[1], force_original_aspect_ratio='decrease')
             .filter('pad', target_size[0], target_size[1], '(ow-iw)/2', '(oh-ih)/2', 'black')
         )
+        
+        # Use more compatible codec settings
         output_params = {
-            'vcodec': 'libx265', 'pix_fmt': 'yuv420p',
-            'crf': 28, 'preset': 'fast', 'movflags': '+faststart'
+            'vcodec': 'libx264',  # Changed from libx265 to libx264 for better compatibility
+            'pix_fmt': 'yuv420p',
+            'crf': 23,  # Better quality
+            'preset': 'medium',  # Balanced speed/quality
+            'movflags': '+faststart'
         }
+        
         final_streams = [video_stream]
         if has_audio:
             audio_stream = input_stream['a:0']
             final_streams.append(audio_stream)
-            output_params['acodec'] = 'copy'
+            output_params['acodec'] = 'aac'  # Changed from 'copy' to 'aac' for better compatibility
+        
+        print(f"Processing video with ffmpeg: {ffmpeg_cmd}")
+        print(f"Input: {input_path}, Output: {output_path}")
         
         (
             ffmpeg.output(*final_streams, output_path, **output_params)
             .overwrite_output()
-            .run(quiet=True, cmd=ffmpeg_cmd)
+            .run(quiet=False, cmd=ffmpeg_cmd)  # Set to False to see output for debugging
         )
         return True
     except Exception as e:
         print(f"An error occurred during video processing: {e}")
+        print(f"FFmpeg command: {ffmpeg_cmd}")
+        print(f"FFprobe command: {ffprobe_cmd}")
         return False
 
 # ====================================================
@@ -146,18 +192,35 @@ def post_video_story_as_user(video_file: str, caption: str | None = None, active
     print("Processing and posting video story as user...")
     processed_video_path = f"processed_story_{os.getpid()}.mp4"
     try:
+        # Try to process the video, but if it fails, use the original video
         if not _process_video_for_story(video_file, processed_video_path):
-            return json.dumps({"ok": False, "description": "Video processing failed. Check FFmpeg installation and path."})
+            print("Video processing failed, using original video file...")
+            processed_video_path = video_file
+        
+        # Check if the video file exists
+        if not os.path.exists(processed_video_path):
+            return json.dumps({"ok": False, "description": f"Video file not found: {processed_video_path}"})
         
         url = f"{BASE_URL}/postStory"
         attach_name = "story_video"
         content = {"type": "video", "video": f"attach://{attach_name}"}
         data = { "business_connection_id": BUSINESS_CONNECTION_ID, "content": json.dumps(content), "active_period": active_period }
         if caption: data["caption"] = caption
+        
         with open(processed_video_path, "rb") as f:
             files = {attach_name: f}
             r = requests.post(url, data=data, files=files)
-        return json.dumps(r.json())
+        
+        result = r.json()
+        print(f"Video story posting result: {result}")
+        return json.dumps(result)
+    except Exception as e:
+        print(f"Error posting video story: {e}")
+        return json.dumps({"ok": False, "description": f"Error posting video story: {str(e)}"})
     finally:
-        if os.path.exists(processed_video_path):
-            os.remove(processed_video_path)
+        # Only remove the processed file if it's different from the original
+        if os.path.exists(processed_video_path) and processed_video_path != video_file:
+            try:
+                os.remove(processed_video_path)
+            except:
+                pass

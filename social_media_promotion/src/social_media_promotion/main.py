@@ -61,18 +61,18 @@ def run_promotion_pipeline(inputs=None):
         print(f"❌ Error in workflow: {str(e)}")
         raise e
     finally:
-        # Cleanup generated media per request
+        # Cleanup generated images only (preserve videos for workflow)
         base_dir = Path(os.path.dirname(__file__))
-        for folder in [base_dir / "images", base_dir / "videos"]:
-            if folder.exists() and folder.is_dir():
-                for child in folder.glob("*"):
-                    try:
-                        if child.is_file():
-                            child.unlink(missing_ok=True)
-                        elif child.is_dir():
-                            shutil.rmtree(child, ignore_errors=True)
-                    except Exception:
-                        pass
+        images_folder = base_dir / "images"
+        if images_folder.exists() and images_folder.is_dir():
+            for child in images_folder.glob("*"):
+                try:
+                    if child.is_file():
+                        child.unlink(missing_ok=True)
+                    elif child.is_dir():
+                        shutil.rmtree(child, ignore_errors=True)
+                except Exception:
+                    pass
 
 if __name__ == "__main__":
     print("🤖 Social Media Promotion System")
