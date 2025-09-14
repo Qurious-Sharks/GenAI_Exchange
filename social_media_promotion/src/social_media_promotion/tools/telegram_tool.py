@@ -125,6 +125,13 @@ def send_photo_to_channel(image_file: str, caption: str | None = None) -> str:
         image_file (str): The local file path to the image to send.
         caption (str, optional): A text caption for the photo.
     """
+    print(f"DEBUG: send_photo_to_channel called with image_file: {image_file}")
+    print(f"DEBUG: Current working directory: {os.getcwd()}")
+    print(f"DEBUG: Image file exists: {os.path.exists(image_file)}")
+    
+    if not os.path.exists(image_file):
+        return f"Error: Image file not found: {image_file}"
+    
     print(f"Sending photo to channel {CHAT_ID}...")
     url = f"{BASE_URL}/sendPhoto"
     data = {"chat_id": CHAT_ID}

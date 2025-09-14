@@ -28,15 +28,17 @@ def run_promotion_pipeline(inputs=None):
 
     assign_output_files()
     try:
-        # Resolve placeholders via env for YAML {vars}
         if inputs:
             user_val = str(inputs.get("user") or inputs.get("user_name") or "").strip()
+            cost_val = str(inputs.get("cost") or "").strip()
             prod_val = str(inputs.get("product_name") or "").strip()
             desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
             img_val = str(inputs.get("image_path") or inputs.get("product_image_path") or "").strip()
 
             if user_val:
                 os.environ["user"] = user_val
+            if cost_val:
+                os.environ["cost"] = cost_val
             if prod_val:
                 os.environ["product_name"] = prod_val
             if desc_val:
@@ -61,7 +63,6 @@ def run_promotion_pipeline(inputs=None):
         print(f"❌ Error in workflow: {str(e)}")
         raise e
     finally:
-        # Cleanup generated images only (preserve videos for workflow)
         base_dir = Path(os.path.dirname(__file__))
         images_folder = base_dir / "images"
         if images_folder.exists() and images_folder.is_dir():
@@ -73,6 +74,90 @@ def run_promotion_pipeline(inputs=None):
                         shutil.rmtree(child, ignore_errors=True)
                 except Exception:
                     pass
+
+def run_price_generation_pipeline(inputs=None):
+    """Runs the price generation workflow."""
+    print("Running the price generation workflow...")
+
+    if inputs is None:
+        inputs = {
+            'current_year': str(datetime.now().year)
+        }
+
+    assign_output_files()
+    try:
+        if inputs:
+            user_val = str(inputs.get("user") or inputs.get("user_name") or "").strip()
+            prod_val = str(inputs.get("product_name") or "").strip()
+            desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
+
+            if user_val:
+                os.environ["user"] = user_val
+            if prod_val:
+                os.environ["product_name"] = prod_val
+            if desc_val:
+                os.environ["product_description"] = desc_val
+
+        # Instantiate after env is ready
+        crew_instance = SocialMediaPromotion()
+        crew_price_generation = crew_instance.crew_price_generation()
+
+        result = crew_price_generation.kickoff(inputs=inputs)
+        print("✅ Price generation workflow complete.\n")
+        print(result)
+        return result
+    except Exception as e:
+        print(f"❌ Error in price generation workflow: {str(e)}")
+        raise e
+
+def run_story_advertising_pipeline(inputs=None):
+    """Runs the story advertising workflow."""
+    print("Running the story advertising workflow...")
+
+    if inputs is None:
+        inputs = {
+            'current_year': str(datetime.now().year)
+        }
+
+    assign_output_files()
+    try:
+        if inputs:
+            user_val = str(inputs.get("user") or inputs.get("user_name") or "").strip()
+            story_val = str(inputs.get("user_story") or "").strip()
+            prod_val = str(inputs.get("product_name") or "").strip()
+            desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
+            img_val = str(inputs.get("image_path") or inputs.get("product_image_path") or "").strip()
+
+            print(f"DEBUG: Input values - user: {user_val}, story: {story_val}, product: {prod_val}, desc: {desc_val}, img: {img_val}")
+
+            if user_val:
+                os.environ["user"] = user_val
+            if story_val:
+                os.environ["user_story"] = story_val
+            if prod_val:
+                os.environ["product_name"] = prod_val
+            if desc_val:
+                os.environ["product_description"] = desc_val
+            if img_val:
+                os.environ["image_path"] = img_val
+                print(f"DEBUG: Setting image_path to: {img_val}")
+            else:
+                print("DEBUG: No image_path provided")
+
+        # Instantiate after env is ready
+        crew_instance = SocialMediaPromotion()
+        crew_story_advertising = crew_instance.crew_story_advertising()
+
+        result = crew_story_advertising.kickoff(inputs=inputs)
+        print("✅ Story advertising workflow complete.\n")
+        print(result)
+        return result
+    except Exception as e:
+        print(f"❌ Error in story advertising workflow: {str(e)}")
+        raise e
+    finally:
+        # Don't clean up images for story advertising - they need to be preserved for posting
+        pass
 
 if __name__ == "__main__":
     print("🤖 Social Media Promotion System")

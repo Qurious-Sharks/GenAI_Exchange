@@ -7,14 +7,43 @@ summary_generator:
     A clear, 3-5 sentence product summary highlighting all key features and benefits.
   agent: summarizer
 
+
+
+price_analysis_task:
+  description: >
+    Analyze the product details provided by {user} for their {product_name} and conduct comprehensive market research to determine the optimal pricing strategy.
+    Consider factors like product features, target market, competitor pricing, and value proposition.
+  expected_output: >
+    A detailed pricing analysis including:
+    - Recommended price range with justification
+    - Market comparison with similar products
+    - Pricing strategy recommendations
+    - Value proposition analysis
+  agent: optimal_price_generator
+
+story_advertising_task:
+  description: >
+    Create an emotional and compelling story about {user} and their {product_name} based on their {user_story} and product details.
+    The story should highlight their journey, challenges, and passion for their craft while properly incorporating their {product_name} and its features.
+    Use the product details to understand what they create and how it helps people.
+    Use the {user_story} to add emotional touch to the generated story so that people feel sympathy for the {user}.
+    This story will be used for social media promotion to connect with the audience emotionally.
+  expected_output: >
+    An emotional and engaging story (5-6 sentences) about the user's journey and their {product_name} that:
+    - Highlights their personal struggles and triumphs mentioned in {user_story}
+    - Properly incorporates their {product_name} and its benefits
+    - Connects emotionally with the audience
+    - Promotes their craft and products with proper context
+    - Includes the message "Join our Telegram channel to buy their products and help them: @artpmtns"
+  agent: emotional_storyteller
+
 caption_generation:
   description: >
     Using the storyteller's narrative and summarizer's product details, create an engaging 
-    Instagram caption that resonates with the audience. The caption should be 2-3 short sentences long,
+    Instagram caption that resonates with the audience. The caption should be 3 to 4 sentences long,
     include relevant hashtags, and effectively promote {user}'s product.
   expected_output: >
-    A creative and engaging caption (2-3 short sentences) with relevant hashtags. At the end of the caption before the hashtags,
-    Add a string saying "For more details, join our telegram channel: @artpmtns"
+    A creative and engaging Instagram caption (2-3 short paragraphs) with relevant hashtags.
   agent: caption_generator
 
 generate_imagen_prompt:
@@ -45,15 +74,13 @@ generate_veo_prompt:
   description: >
     Using the product's name and its summary to
     create a creative and detailed prompt for the Veo 3 text-to-video model.
-    Search the given website for examples of Veo 3 prompts to understand the style and structure.
-    The video should be a short advertisement (10-15 seconds).
+    The video should be a short advertisement (10-15 seconds) **promoting the image given by the user** not discouraging it.
     The prompt must incorporate a touch of humor and satire to make the ad memorable and engaging.
     Reference the style and content of the product image to ensure visual consistency.
   agent: video_creator
   context: [summary_generator]
   expected_output: >
-    A single, well-crafted string that is a prompt ready to be used with Veo 3 to generate a video from the image whilst ensuring
-    continuity with the product's name and summary.
+    A single, well-crafted string that is a prompt ready to be used with Veo 3 to generate a video.
     Example: "A dramatic, slow-motion shot of a person tripping over in a comically mundane situation. As they fall,
     they miraculously catch their coffee in our 'No-Spill' mug, not a single drop is spilled. The shot then cuts to the product image.
     A satirical voiceover says, 'The No-Spill Mug: Solving life's least important problems, perfectly.' Upbeat, funny, cinematic."
@@ -104,20 +131,53 @@ instagram_response_task:
     that answers the user's query and encourages them to explore or buy the product.
   agent: instagram_responder
 
+
+    
+
 telegram_channel_post_task:
   description: >
     Prepare the finalized promotional content for Telegram channel posting.
-    Use the image from {image_path} and video from ./videos along with the caption to publish it to the Telgram Channel for promotion.
+    Use the image from {image_path} along with the caption to publish it to the Telgram Channel for promotion.
     Publish using available Telegram channel tools (text/photo/video).
+    Do this task only one successful time.
   expected_output: >
-    Posts with image and caption and video and caption published in the telegram channel.
+    Posts with image and caption published in the telegram channel.
   context: [caption_generation, execute_image_generation]
   agent: telegram_channel_publisher
 
 telegram_story_task:
   description: >
     Post story to Telegram from the video at ./videos and image at {image_path} along with its caption.
+    If only video is provided then just post the video alone and if only the image is provided then post the image alone with the caption.
+    If both are provided then post both video and image to the story with caption.
+    Do this task only one successful time.
   expected_output: >
     Success message after posting story with the video and its caption.
+    Also include the message "Join our Telegram channel for more such products: @artpmtns" at the end of the caption.
   context: [execute_video_generation, caption_generation]
   agent: telegram_story_publisher
+
+telegram_story_channel_post_task:
+  description: >
+    Publish the emotional story about {user} and their {product_name} to the Telegram channel.
+    Use the image from {image_path} along with the story content to create an engaging post.
+    The story should be published as a channel post with the image and story text.
+    Do this task only one successful time.
+  expected_output: >
+    Success message after posting the emotional story to the Telegram channel with the image.
+    The post should include the story content and the image from {image_path}.
+  context: [story_advertising_task]
+  agent: telegram_story_channel_publisher
+
+telegram_story_story_post_task:
+  description: >
+    Publish the emotional story as a Telegram story using the image from {image_path}.
+    Use the story content as the caption for the Telegram story.
+    The story should be published as a Telegram story with the image and story caption.
+    Do this task only one successful time.
+  expected_output: >
+    Success message after posting the emotional story as a Telegram story with the image.
+    The story should include the emotional story content as caption and the image from {image_path}.
+    Also include the message "Join our Telegram channel to buy their products and help them: @artpmtns" at the end of the caption.
+  context: [story_advertising_task]
+  agent: telegram_story_story_publisher
