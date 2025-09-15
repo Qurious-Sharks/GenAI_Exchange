@@ -19,7 +19,7 @@ def save_uploaded_image(uploaded_file) -> str:
     print(f"DEBUG: Image saved to: {str(out_path)}")
     return str(out_path)
 
-def _run_backend(user_name: str, product_name: str, cost: int, product_image_path: str, product_details: str):
+def _run_backend(user_name: str, product_name: str, cost: int, product_image_path: str, product_details: str, language: str):
     inputs = {
         "user_name": user_name,
         "user": user_name,
@@ -29,20 +29,22 @@ def _run_backend(user_name: str, product_name: str, cost: int, product_image_pat
         "image_path": product_image_path,
         "product_details": product_details,
         "product_description": product_details,
+        "language": language,
     }
     return run_promotion_pipeline(inputs=inputs)
 
-def _run_price_backend(user_name: str, product_name: str, product_details: str):
+def _run_price_backend(user_name: str, product_name: str, product_details: str, language: str):
     inputs = {
         "user_name": user_name,
         "user": user_name,
         "product_name": product_name,
         "product_details": product_details,
         "product_description": product_details,
+        "language": language,
     }
     return run_price_generation_pipeline(inputs=inputs)
 
-def _run_story_backend(user_name: str, user_story: str, product_name: str, product_details: str, product_image_path: str):
+def _run_story_backend(user_name: str, user_story: str, product_name: str, product_details: str, product_image_path: str, language: str):
     inputs = {
         "user_name": user_name,
         "user": user_name,
@@ -52,6 +54,7 @@ def _run_story_backend(user_name: str, user_story: str, product_name: str, produ
         "product_description": product_details,
         "product_image_path": product_image_path,
         "image_path": product_image_path,
+        "language": language,
     }
     return run_story_advertising_pipeline(inputs=inputs)
 
@@ -76,6 +79,7 @@ def main():
                 placeholder="Describe features, audience, tone, platforms, etc.",
                 height=160,
             )
+            language = st.selectbox("Language", ["English", "Hindi", "Tamil", "Telugu", "Spanish"], index=0)
             uploaded_image = st.file_uploader("Product Image (optional)", type=["png", "jpg", "jpeg", "webp"])
             submitted = st.form_submit_button("Generate Full Promotion")
 
@@ -95,6 +99,7 @@ def main():
                             cost = int(cost) if cost.isdigit() else 0,
                             product_image_path=product_image_path,
                             product_details=product_details.strip(),
+                            language=language,
                         )
                         st.success("Done!")
                         
@@ -123,6 +128,7 @@ def main():
                 height=160,
                 key="price_details"
             )
+            language_price = st.selectbox("Language", ["English", "Hindi", "Tamil", "Telugu", "Spanish"], index=0, key="price_lang")
             submitted_price = st.form_submit_button("Get Price Analysis")
 
         if submitted_price:
@@ -135,6 +141,7 @@ def main():
                             user_name=user_name_price.strip(),
                             product_name=product_name_price.strip(),
                             product_details=product_details_price.strip(),
+                            language=language_price,
                         )
                         st.success("Price analysis complete!")
                         
@@ -169,6 +176,7 @@ def main():
                 height=160,
                 key="story_content"
             )
+            language_story = st.selectbox("Language", ["English", "Hindi", "Tamil", "Telugu", "Spanish"], index=0, key="story_lang")
             uploaded_image_story = st.file_uploader("Picture with your craft (optional)", type=["png", "jpg", "jpeg", "webp"], key="story_image")
             submitted_story = st.form_submit_button("Create & Publish Story")
 
@@ -189,6 +197,7 @@ def main():
                             product_name=product_name_story.strip(),
                             product_details=product_details_story.strip(),
                             product_image_path=product_image_path_story,
+                            language=language_story,
                         )
                         st.success("Story created and published!")
                         

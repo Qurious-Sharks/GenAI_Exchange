@@ -33,6 +33,7 @@ def run_promotion_pipeline(inputs=None):
             cost_val = str(inputs.get("cost") or "").strip()
             prod_val = str(inputs.get("product_name") or "").strip()
             desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
+            lang_val = str(inputs.get("language") or "").strip()
             img_val = str(inputs.get("image_path") or inputs.get("product_image_path") or "").strip()
 
             if user_val:
@@ -45,6 +46,8 @@ def run_promotion_pipeline(inputs=None):
                 os.environ["product_description"] = desc_val
             if img_val:
                 os.environ["image_path"] = img_val
+            if lang_val:
+                os.environ["language"] = lang_val
 
         # Instantiate after env is ready
         crew_instance = SocialMediaPromotion()
@@ -90,6 +93,7 @@ def run_price_generation_pipeline(inputs=None):
             user_val = str(inputs.get("user") or inputs.get("user_name") or "").strip()
             prod_val = str(inputs.get("product_name") or "").strip()
             desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
+            lang_val = str(inputs.get("language") or "").strip()
 
             if user_val:
                 os.environ["user"] = user_val
@@ -127,6 +131,7 @@ def run_story_advertising_pipeline(inputs=None):
             prod_val = str(inputs.get("product_name") or "").strip()
             desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
             img_val = str(inputs.get("image_path") or inputs.get("product_image_path") or "").strip()
+            lang_val = str(inputs.get("language") or "").strip()
 
             print(f"DEBUG: Input values - user: {user_val}, story: {story_val}, product: {prod_val}, desc: {desc_val}, img: {img_val}")
 
@@ -141,6 +146,8 @@ def run_story_advertising_pipeline(inputs=None):
             if img_val:
                 os.environ["image_path"] = img_val
                 print(f"DEBUG: Setting image_path to: {img_val}")
+            if lang_val:
+                os.environ["language"] = lang_val
             else:
                 print("DEBUG: No image_path provided")
 

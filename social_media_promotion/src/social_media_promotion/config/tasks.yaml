@@ -5,9 +5,8 @@ summary_generator:
     This will serve as a quick reference for responders and content creators.
   expected_output: >
     A clear, 3-5 sentence product summary highlighting all key features and benefits.
+
   agent: summarizer
-
-
 
 price_analysis_task:
   description: >
@@ -15,10 +14,10 @@ price_analysis_task:
     Consider factors like product features, target market, competitor pricing, and value proposition.
   expected_output: >
     A detailed pricing analysis including:
-    - Recommended price range with justification
-    - Market comparison with similar products
-    - Pricing strategy recommendations
-    - Value proposition analysis
+    - Recommended price range in Rupees.
+    - Comparison with other similar products in the market.
+    - Pricing strategy recommendations.
+    The entire output must be in {language}.
   agent: optimal_price_generator
 
 story_advertising_task:
@@ -35,6 +34,7 @@ story_advertising_task:
     - Connects emotionally with the audience
     - Promotes their craft and products with proper context
     - Includes the message "Join our Telegram channel to buy their products and help them: @artpmtns"
+    The entire output must be in {language}.
   agent: emotional_storyteller
 
 caption_generation:
@@ -44,6 +44,7 @@ caption_generation:
     include relevant hashtags, and effectively promote {user}'s product.
   expected_output: >
     A creative and engaging Instagram caption (2-3 short paragraphs) with relevant hashtags.
+    The entire output must be in {language}.
   agent: caption_generator
 
 generate_imagen_prompt:
@@ -81,9 +82,10 @@ generate_veo_prompt:
   context: [summary_generator]
   expected_output: >
     A single, well-crafted string that is a prompt ready to be used with Veo 3 to generate a video.
+    Mention that the audio must be in  {language} language.
     Example: "A dramatic, slow-motion shot of a person tripping over in a comically mundane situation. As they fall,
     they miraculously catch their coffee in our 'No-Spill' mug, not a single drop is spilled. The shot then cuts to the product image.
-    A satirical voiceover says, 'The No-Spill Mug: Solving life's least important problems, perfectly.' Upbeat, funny, cinematic."
+    A satirical voiceover says, 'The No-Spill Mug: Solving life's least important problems, perfectly.' in {language}. Upbeat, funny, cinematic."
 
 execute_video_generation:
   description: >
@@ -93,6 +95,7 @@ execute_video_generation:
   context: [generate_veo_prompt]
   expected_output: >
     A string containing the local file path to the generated video (e.g., 'videos/product_ad.mp4').
+    The entire output must be in {language}.
 
 instagram_post_task:
   description: >
@@ -106,6 +109,7 @@ instagram_post_task:
     - Caption text (2-3 short engaging paragraphs with hashtags).
     - Either the provided image path {image_path} OR a generated image prompt for Imagen 
       that best represents {user}'s product and story.
+    The entire output must be in {language}.
   agent: instagram_post_generator
 
 instagram_reel_task:
@@ -119,6 +123,7 @@ instagram_reel_task:
     - If {image_path} exists, instructions on how it should appear in the video.  
     - Clear description of the desired visual style, pacing, background audio or music, 
       and text overlays.
+    The entire output must be in {language}.
   agent: instagram_reel_creator
 
 instagram_response_task:
@@ -129,6 +134,7 @@ instagram_response_task:
   expected_output: >
     A conversational and empathetic response (2-3 sentences) 
     that answers the user's query and encourages them to explore or buy the product.
+    The entire output must be in {language}.
   agent: instagram_responder
 
 
@@ -142,6 +148,7 @@ telegram_channel_post_task:
     Do this task only one successful time.
   expected_output: >
     Posts with image and caption published in the telegram channel.
+    The entire output must be in {language}.
   context: [caption_generation, execute_image_generation]
   agent: telegram_channel_publisher
 
@@ -154,6 +161,7 @@ telegram_story_task:
   expected_output: >
     Success message after posting story with the video and its caption.
     Also include the message "Join our Telegram channel for more such products: @artpmtns" at the end of the caption.
+    The entire output must be in {language}.
   context: [execute_video_generation, caption_generation]
   agent: telegram_story_publisher
 
@@ -163,9 +171,12 @@ telegram_story_channel_post_task:
     Use the image from {image_path} along with the story content to create an engaging post.
     The story should be published as a channel post with the image and story text.
     Do this task only one successful time.
+    IMPORTANT: Call the photo tool using the exact path from inputs without modification:
+    image_file={image_path}. Do not invent or change the filename.
   expected_output: >
     Success message after posting the emotional story to the Telegram channel with the image.
     The post should include the story content and the image from {image_path}.
+    The entire output must be in {language}.
   context: [story_advertising_task]
   agent: telegram_story_channel_publisher
 
@@ -179,5 +190,6 @@ telegram_story_story_post_task:
     Success message after posting the emotional story as a Telegram story with the image.
     The story should include the emotional story content as caption and the image from {image_path}.
     Also include the message "Join our Telegram channel to buy their products and help them: @artpmtns" at the end of the caption.
+    The entire output must be in {language}.
   context: [story_advertising_task]
   agent: telegram_story_story_publisher

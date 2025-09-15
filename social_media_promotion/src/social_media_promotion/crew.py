@@ -61,6 +61,7 @@ class SocialMediaPromotion():
         self.product_description = os.getenv("product_description", "a detailed product description")
         self.user_story = os.getenv("user_story", "their personal journey and challenges")
         self.image_path = os.getenv("image_path", "")
+        self.language = os.getenv("language", "English")
         print(f"DEBUG: Crew image_path set to: {self.image_path}")
 
     # Helper dictionary to pass all potential variables to format strings
@@ -73,7 +74,8 @@ class SocialMediaPromotion():
             'description': self.product_description,
             'product_description': self.product_description, # Alias for consistency
             'user_story': self.user_story,
-            'image_path': self.image_path
+            'image_path': self.image_path,
+            'language': self.language
         }
         print(f"DEBUG: _get_inputs returning: {inputs}")
         return inputs
@@ -98,24 +100,30 @@ class SocialMediaPromotion():
 
     @agent
     def optimal_price_generator(self) -> Agent:
+        config = self.agents_config["optimal_price_generator"].copy()
+        config['goal'] = config['goal'].format(**self._get_inputs)
         return Agent(
-        config = self.agents_config["optimal_price_generator"],
-        tools = [search_tool],
-        verbose = True,
+            config = config,
+            tools = [search_tool],
+            verbose = True,
         )
         
 
     @agent
     def product_image_generator(self) -> Agent:
+        config = self.agents_config["product_image_generator"].copy()
+        config['goal'] = config['goal'].format(**self._get_inputs)
         return Agent(
-            config=self.agents_config["product_image_generator"],
+            config=config,
             verbose=True,
         )
 
     @agent
     def image_executor(self) -> Agent:
+        config = self.agents_config["image_executor"].copy()
+        config['goal'] = config['goal'].format(**self._get_inputs)
         return Agent(
-            config=self.agents_config["image_executor"],
+            config=config,
             tools=[generate_image_with_imagen],
             verbose=True,
         )
@@ -164,8 +172,10 @@ class SocialMediaPromotion():
 
     @agent
     def video_executor(self) -> Agent:
+        config = self.agents_config["video_executor"].copy()
+        config['goal'] = config['goal'].format(**self._get_inputs)
         return Agent(
-            config=self.agents_config["video_executor"],
+            config=config,
             tools=[generate_video_with_veo_simple],
             verbose=True,
         )
@@ -228,6 +238,8 @@ class SocialMediaPromotion():
     def summary_generator(self) -> Task:
         config = self.tasks_config["summary_generator"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
 
     
@@ -236,6 +248,8 @@ class SocialMediaPromotion():
     def price_analysis_task(self) -> Task:
         config = self.tasks_config["price_analysis_task"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
 
     @task
@@ -249,24 +263,34 @@ class SocialMediaPromotion():
     def generate_imagen_prompt(self) -> Task:
         config = self.tasks_config["generate_imagen_prompt"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
 
     @task
     def execute_image_generation(self) -> Task:
-        return Task(
-            config=self.tasks_config["execute_image_generation"],
-        )
+        config = self.tasks_config["execute_image_generation"].copy()
+        if 'description' in config:
+            config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
+        return Task(config=config)
 
     @task
     def generate_veo_prompt(self) -> Task:
-        return Task(
-            config=self.tasks_config["generate_veo_prompt"],
-        )
+        config = self.tasks_config["generate_veo_prompt"].copy()
+        if 'description' in config:
+            config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
+        return Task(config=config)
 
     @task
     def execute_video_generation(self) -> Task:
         config = self.tasks_config["execute_video_generation"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
 
     @task
@@ -287,24 +311,32 @@ class SocialMediaPromotion():
     def instagram_response_task(self) -> Task:
         config = self.tasks_config["instagram_response_task"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
 
     @task
     def telegram_channel_post_task(self) -> Task:
         config = self.tasks_config["telegram_channel_post_task"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
     
     @task
     def caption_generation(self) -> Task:
         config = self.tasks_config["caption_generation"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config, output_pydantic=Captionoutput)
 
     @task
     def telegram_story_task(self) -> Task:
         config = self.tasks_config["telegram_story_task"].copy()
         config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
 
     @task
