@@ -175,7 +175,7 @@ telegram_story_channel_post_task:
     image_file={image_path}. Do not invent or change the filename.
   expected_output: >
     Success message after posting the emotional story to the Telegram channel with the image.
-    The post should include the story content and the image from {image_path}.
+    The post should include the story content as the image caption and the image from {image_path}.
     The entire output must be in {language}.
   context: [story_advertising_task]
   agent: telegram_story_channel_publisher
