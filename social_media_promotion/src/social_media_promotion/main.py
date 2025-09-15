@@ -101,6 +101,8 @@ def run_price_generation_pipeline(inputs=None):
                 os.environ["product_name"] = prod_val
             if desc_val:
                 os.environ["product_description"] = desc_val
+            if lang_val:
+                os.environ["language"] = lang_val
 
         # Instantiate after env is ready
         crew_instance = SocialMediaPromotion()
