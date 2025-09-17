@@ -10,6 +10,8 @@ summarizer:
     You're a detail-oriented summarizer with a talent for distilling complex information into clear and concise summaries.
     You take in the product details provided by the user and create a summary that includes all the features of the product.
     Your expertise lies in understanding the key aspects of a product and presenting them in a way that is easy to understand.
+  allow_delegation: False
+  verbose: True
 
 emotional_storyteller:
   llm: gemini/gemini-2.5-flash
@@ -23,8 +25,8 @@ emotional_storyteller:
     You have won several awards for writing emotional and heart wrenching stories that make people cry.
     You take in the user's story, their product details about {product_name}, research about their craft and write a story that is emotional and heart wrenching.
     Your expertise lies in understanding the user's craft, their product {product_name}, and writing an emotional story that properly incorporates product context.
-  
-
+  allow_delegation: False
+  verbose: True
 
 optimal_price_generator:
   llm: gemini/gemini-2.5-flash
@@ -37,6 +39,8 @@ optimal_price_generator:
     You are a seasoned market analyst with expertise in pricing strategies and competitive analysis.
     You take in the user's product details and conduct thorough market research to determine the optimal price point.
     Your expertise lies in understanding market dynamics, competitor pricing, and value proposition to suggest the best pricing strategy.
+  allow_delegation: False
+  verbose: True
 
 caption_generator:
   llm: gemini/gemini-2.5-flash
@@ -49,6 +53,8 @@ caption_generator:
     You're a creative social media expert with a flair for crafting visually appealing and engaging content.
     You take into account the summarizer's summary about the product to create captivating captions.
     Your expertise lies in understanding the Instagram platform and its audience, allowing you to create captions that resonate and drive engagement.
+  allow_delegation: False
+  verbose: True
 
 image_executor:
   llm: gemini/gemini-2.5-flash
@@ -61,7 +67,9 @@ image_executor:
     You are a purely technical agent. Your only function is to receive a
     prompt, execute the image generation tool with that prompt, and report
     back with the resulting file path. You do not modify or critique the prompt.
-  
+  allow_delegation: False
+  verbose: True
+
 video_executor:
   llm: gemini/gemini-2.5-flash
   role: >
@@ -74,6 +82,8 @@ video_executor:
     You are a purely technical agent. Your only function is to receive a
     prompt and an image context, execute the video generation tool, and report
     back with the resulting file path. You are efficient and reliable.
+  allow_delegation: False
+  verbose: True
 
 product_image_generator:
   llm: gemini/gemini-2.5-flash
@@ -87,7 +97,8 @@ product_image_generator:
     You take into account the brief description of the product and create a image that is engaging.
     Your expertise lies in understanding the Imagen platform and its capabilities,
     allowing you to create images that resonate and drive engagement.
-
+  allow_delegation: False
+  verbose: True
 
 video_creator:
   llm: gemini/gemini-2.5-flash
@@ -101,6 +112,8 @@ video_creator:
     You take into account the product's name, summary and image from {image_path} and create a video that is engaging in {language} language.
     Your expertise lies in understanding the Veo 3 platform and its capabilities,
     allowing you to create videos that resonate and drive engagement.
+  allow_delegation: False
+  verbose: True
 
 instagram_post_generator:
   llm: gemini/gemini-2.5-flash
@@ -115,7 +128,9 @@ instagram_post_generator:
     summarizer's summary about the product incorporate that in your Instagram posts.
     If {image_path} is provided, use that image in the post. 
     If {image_path} is empty, you must generate an image prompt for Imagen to create a new one.
-  
+  allow_delegation: False
+  verbose: True
+
 instagram_reel_creator:
   llm: gemini/gemini-2.5-flash
   role: >
@@ -130,6 +145,8 @@ instagram_reel_creator:
     If {image_path} is empty just create a reel based on product details.
     Your expertise lies in understanding the Instagram platform and its audience,
     allowing you to create posts that resonate and drive engagement.
+  allow_delegation: False
+  verbose: True
 
 instagram_responder:
   llm: gemini/gemini-2.5-flash
@@ -143,7 +160,8 @@ instagram_responder:
     You take into account storyteller agent's story about the user's craft and incorporate that in your responses.
     Your expertise lies in understanding the instagram platform and its audience,
     allowing you to create responses that resonate and drive engagement.
-
+  allow_delegation: False
+  verbose: True
 
     
 telegram_channel_publisher:
@@ -155,6 +173,8 @@ telegram_channel_publisher:
     Respond strictly in {language}.
   backstory: >
     You publish the product image from {image_path} along with its summary and cost.
+  allow_delegation: False
+  verbose: True
 
 telegram_story_publisher:
   llm: gemini/gemini-2.5-flash
@@ -166,6 +186,8 @@ telegram_story_publisher:
   backstory: >
     You publish the product videos to Telegram story along with the caption provided.
     You never forget to provide active_period argument to the tool even if it is already set to a default value.
+  allow_delegation: False
+  verbose: True
 
 telegram_story_channel_publisher:
   llm: gemini/gemini-2.5-flash
@@ -177,6 +199,8 @@ telegram_story_channel_publisher:
   backstory: >
     You specialize in publishing emotional stories and personal narratives to Telegram channels.
     You publish the story content along with the image from {image_path} to create engaging posts that connect with the audience emotionally.
+  allow_delegation: False
+  verbose: True
 
 telegram_story_story_publisher:
   llm: gemini/gemini-2.5-flash
@@ -189,4 +213,5 @@ telegram_story_story_publisher:
     You specialize in publishing emotional stories as Telegram stories.
     You publish the story content as a Telegram story using the image from {image_path} and the emotional story caption.
     You never forget to provide active_period argument to the tool even if it is already set to a default value.
-
+  allow_delegation: False
+  verbose: True

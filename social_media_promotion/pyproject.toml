@@ -6,7 +6,13 @@ authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "crewai[tools]>=0.150.0,<1.0.0",
-    "streamlit>=1.37"
+    "streamlit>=1.37",
+    "google-cloud-speech>=2.27.0",
+    "google-auth>=2.35.0",
+    "google-cloud-translate>=3.15.0",
+    "streamlit-mic-recorder>=0.0.8",
+    "gradio>=3.50.0,<4.0.0",
+    "soundfile>=0.12.1"
 ]
 
 [project.scripts]
