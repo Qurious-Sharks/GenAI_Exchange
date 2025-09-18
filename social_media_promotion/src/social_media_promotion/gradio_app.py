@@ -87,6 +87,7 @@ def translate_text(text: str, target_language: str = "en") -> str:
     if translate_client:
         try:
             result = translate_client.translate(text, target_language=target_language)
+            print(result)
             return result.get("translatedText", text)
         except Exception:
             return text
