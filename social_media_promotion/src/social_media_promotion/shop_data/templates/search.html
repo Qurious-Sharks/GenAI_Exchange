@@ -1,0 +1,20 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h1>Search Results</h1>
+<p>Query: <strong>{{ query or '' }}</strong></p>
+<div class="grid">
+  {% for p in products %}
+  <div class="card product">
+    {% if p.image_path %}<img src="/static/uploads/{{ p.image_path | basename }}" alt="{{ p.name }}" />{% endif %}
+    <h3>{{ p.name }}</h3>
+    <p><strong>Price:</strong> ₹{{ p.price }}</p>
+    <p>{{ p.details }}</p>
+    <p><a href="/user/{{ p.user.username }}">By {{ p.user.username }}</a></p>
+  </div>
+  {% endfor %}
+  {% if products|length == 0 %}
+    <p>No matching products.</p>
+  {% endif %}
+</div>
+{% endblock %}

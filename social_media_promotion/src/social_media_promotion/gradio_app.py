@@ -4,6 +4,7 @@ from typing import Tuple
 from pathlib import Path
 from datetime import datetime
 import gradio as gr
+import requests
 
 _PKG_DIR = Path(__file__).resolve().parent
 _SRC_DIR = _PKG_DIR.parent
@@ -141,6 +142,17 @@ def full_promotion_ui(
         }
         result = run_promotion_pipeline(inputs=inputs)
         output = getattr(result, 'raw', str(result))
+        # Also send to shopping backend if available
+        try:
+            _ = requests.post("http://127.0.0.1:8010/api/products", json={
+                "user": user_name.strip(),
+                "product_name": product_name.strip(),
+                "product_details": transcript.strip(),
+                "price": str(inputs.get("cost", "")),
+                "image_path": image_path or "",
+            }, timeout=2)
+        except Exception:
+            pass
         return (output, transcript)
     except Exception as e:
         return (f"Error while running promotion: {e}", transcript)

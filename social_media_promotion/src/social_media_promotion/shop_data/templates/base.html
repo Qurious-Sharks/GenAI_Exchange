@@ -1,0 +1,23 @@
+
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/static/styles.css" />
+    <title>{{ title or 'Shop' }}</title>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <nav>
+          <a href="/">All Products</a>
+          <a href="/upload">Upload Product</a>
+        </nav>
+      </div>
+    </header>
+    <div class="container">
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>

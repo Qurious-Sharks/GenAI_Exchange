@@ -2,17 +2,21 @@
 name = "social_media_promotion"
 version = "0.1.0"
 description = "Social_Media_Promotion using crewAI"
-authors = [{ name = "Your Name", email = "you@example.com" }]
+authors = [{ name = "Rishwanth J", email = "rishwanth738@gmail.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
-    "crewai[tools]>=0.150.0,<1.0.0",
+    "crewai[tools]>=0.150.0",
     "streamlit>=1.37",
     "google-cloud-speech>=2.27.0",
     "google-auth>=2.35.0",
     "google-cloud-translate>=3.15.0",
     "streamlit-mic-recorder>=0.0.8",
-    "gradio>=3.50.0,<4.0.0",
-    "soundfile>=0.12.1"
+    "gradio>=3.50.0",
+    "soundfile>=0.12.1",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "sqlalchemy>=2.0",
+    "jinja2>=3.1"
 ]
 
 [project.scripts]

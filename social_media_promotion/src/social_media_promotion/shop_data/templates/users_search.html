@@ -1,0 +1,17 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h1>User Results</h1>
+<p>Query: <strong>{{ query or '' }}</strong></p>
+<div class="grid">
+  {% for user in users %}
+    <div class="card">
+      <h3><a href="/user/{{ user.username }}">{{ user.username }}</a></h3>
+      <p>{{ (user.products | length) if user.products else 0 }} product(s)</p>
+    </div>
+  {% endfor %}
+  {% if users|length == 0 %}
+    <p>No matching users.</p>
+  {% endif %}
+</div>
+{% endblock %}

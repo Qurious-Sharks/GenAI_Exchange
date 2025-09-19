@@ -1,0 +1,18 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h1>Upload Product</h1>
+<div class="card">
+  <form action="/upload" method="post" enctype="multipart/form-data">
+    <input type="text" name="username" placeholder="Your Name" required />
+    <input type="text" name="name" placeholder="Product Name" required />
+    <textarea name="details" rows="4" placeholder="Product Details" required></textarea>
+    <input type="number" name="price" step="0.01" placeholder="Price (₹)" required />
+    <input type="file" name="image" accept="image/*" />
+    <button type="submit">Upload</button>
+  </form>
+  <p>Duplicate check: same user, same product name → update instead of create.</p>
+  <p>View: <a href="/">All Products</a></p>
+{% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
+ </div>
+{% endblock %}

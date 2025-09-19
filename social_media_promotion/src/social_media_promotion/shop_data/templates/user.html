@@ -1,0 +1,18 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ username }}'s Products</h1>
+<div class="grid">
+  {% for p in products %}
+  <div class="card product">
+    {% if p.image_path %}<img src="/static/uploads/{{ p.image_path | basename }}" alt="{{ p.name }}" />{% endif %}
+    <h3>{{ p.name }}</h3>
+    <p><strong>Price:</strong> ₹{{ p.price }}</p>
+    <p>{{ p.details }}</p>
+  </div>
+  {% endfor %}
+  {% if products|length == 0 %}
+    <p>No products yet for {{ username }}.</p>
+  {% endif %}
+</div>
+{% endblock %}
