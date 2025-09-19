@@ -1,0 +1,54 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<h1>Admin Panel</h1>
+<p>Welcome, {{ admin_user.username }}!</p>
+
+<h2>All Products</h2>
+<div class="grid">
+  {% for p in products %}
+  <div class="card product">
+    {% if p.image_path %}<img src="/static/uploads/{{ p.image_path | basename }}" alt="{{ p.name }}" />{% endif %}
+    <h3>{{ p.name }}</h3>
+    <p><strong>Price:</strong> ₹{{ p.price }}</p>
+    <p>{{ p.details }}</p>
+    <p><a href="/user/{{ p.user.username }}">By {{ p.user.username }}</a></p>
+    <button onclick="deleteProduct({{ p.id }})" style="background:#dc2626;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin-top:8px">Delete</button>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>All Users</h2>
+<div class="grid">
+  {% for u in users %}
+  <div class="card">
+    <h3>{{ u.username }}</h3>
+    <p>Admin: {{ 'Yes' if u.is_admin else 'No' }}</p>
+    <p>Products: {{ u.products | length }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function deleteProduct(productId) {
+  if (confirm('Are you sure you want to delete this product?')) {
+    fetch(`/admin/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Basic ' + btoa('admin:admin123')
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        location.reload();
+      } else {
+        alert('Failed to delete product');
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error);
+    });
+  }
+}
+</script>
+{% endblock %}

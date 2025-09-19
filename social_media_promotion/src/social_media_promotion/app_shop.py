@@ -2,12 +2,14 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Form, UploadFile, File, Request, Depends, HTTPException
+from fastapi import FastAPI, Form, UploadFile, File, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, UniqueConstraint
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+import secrets
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "shop_data"
@@ -65,6 +67,7 @@ ensure_template("base.html", """
         <nav>
           <a href="/">All Products</a>
           <a href="/upload">Upload Product</a>
+          <a href="/admin">Admin Panel</a>
           <form action="/search" method="get" style="display:inline-block;margin-left:16px">
             <input type="text" name="q" placeholder="Search products…" style="width:200px" />
           </form>
@@ -193,6 +196,62 @@ ensure_template("upload.html", """
 {% endblock %}
 """)
 
+ensure_template("admin.html", """
+{% extends 'base.html' %}
+{% block content %}
+<h1>Admin Panel</h1>
+<p>Welcome, {{ admin_user.username }}!</p>
+
+<h2>All Products</h2>
+<div class="grid">
+  {% for p in products %}
+  <div class="card product">
+    {% if p.image_path %}<img src="/static/uploads/{{ p.image_path | basename }}" alt="{{ p.name }}" />{% endif %}
+    <h3>{{ p.name }}</h3>
+    <p><strong>Price:</strong> ₹{{ p.price }}</p>
+    <p>{{ p.details }}</p>
+    <p><a href="/user/{{ p.user.username }}">By {{ p.user.username }}</a></p>
+    <button onclick="deleteProduct({{ p.id }})" style="background:#dc2626;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer;margin-top:8px">Delete</button>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>All Users</h2>
+<div class="grid">
+  {% for u in users %}
+  <div class="card">
+    <h3>{{ u.username }}</h3>
+    <p>Admin: {{ 'Yes' if u.is_admin else 'No' }}</p>
+    <p>Products: {{ u.products | length }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function deleteProduct(productId) {
+  if (confirm('Are you sure you want to delete this product?')) {
+    fetch(`/admin/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': 'Basic ' + btoa('admin:admin123')
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        location.reload();
+      } else {
+        alert('Failed to delete product');
+      }
+    })
+    .catch(error => {
+      alert('Error: ' + error);
+    });
+  }
+}
+</script>
+{% endblock %}
+""")
+
 def basename_filter(path: str) -> str:
     return os.path.basename(path) if path else ""
 
@@ -207,6 +266,8 @@ class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String(128), unique=True, index=True, nullable=False)
+    password = Column(String(128), nullable=False, default="")
+    is_admin = Column(Boolean, default=False)
     products = relationship("Product", back_populates="user", cascade="all, delete-orphan")
 
 class Product(Base):
@@ -224,12 +285,55 @@ class Product(Base):
 
 Base.metadata.create_all(engine)
 
+# Initialize default users
+def init_default_users():
+    db = SessionLocal()
+    try:
+        # Check if admin exists
+        admin = db.query(User).filter(User.username == "admin").first()
+        if not admin:
+            admin = User(username="admin", password="admin123", is_admin=True)
+            db.add(admin)
+        
+        # Check if user exists
+        user = db.query(User).filter(User.username == "user").first()
+        if not user:
+            user = User(username="user", password="user123", is_admin=False)
+            db.add(user)
+        
+        db.commit()
+    finally:
+        db.close()
+
+# Initialize users on startup
+init_default_users()
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+security = HTTPBasic()
+
+def get_current_user(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == credentials.username).first()
+    if not user or user.password != credentials.password:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return user
+
+def get_admin_user(current_user: User = Depends(get_current_user)):
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
 
 app = FastAPI(title="Simple Shop")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -323,6 +427,33 @@ def debug_info():
         "static_dir": str(STATIC_DIR),
         "css_exists": (STATIC_DIR / "styles.css").exists()
     }
+
+@app.delete("/admin/products/{product_id}")
+def delete_product(product_id: int, admin_user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    """Delete a product (admin only)"""
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Delete associated image file if it exists
+    if product.image_path and os.path.exists(product.image_path):
+        try:
+            os.remove(product.image_path)
+        except:
+            pass
+    
+    db.delete(product)
+    db.commit()
+    return {"message": "Product deleted successfully"}
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_panel(admin_user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    """Admin panel with all products and delete options"""
+    products = db.query(Product).order_by(Product.id.desc()).all()
+    users = db.query(User).all()
+    
+    tpl = env.get_template("admin.html")
+    return tpl.render(title="Admin Panel", products=products, users=users, admin_user=admin_user)
 
 @app.post("/upload")
 def upload_product(
