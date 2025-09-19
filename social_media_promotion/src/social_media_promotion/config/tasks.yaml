@@ -71,21 +71,18 @@ execute_image_generation:
     A string containing the local file path to the generated image (e.g., 'images/product_image.png').
   
 
-generate_veo_prompt:
+generate_veo_prompt: 
   description: >
     Using the product's name and its summary to
-    create a creative and detailed prompt for the Veo 3 text-to-video model.
-    The video should be a short advertisement (10-15 seconds) **promoting the image given by the user** not discouraging it.
+    create a creative and detailed JSON based prompt for the Veo 3 text-to-video model.
+    The video should be a short advertisement (15 - 20 seconds) **promoting the image given by the user** not discouraging it.
     The prompt must incorporate a touch of humor and satire to make the ad memorable and engaging.
     Reference the style and content of the product image to ensure visual consistency.
   agent: video_creator
   context: [summary_generator]
-  expected_output: >
-    A single, well-crafted string that is a prompt ready to be used with Veo 3 to generate a video.
-    Mention that the audio must be in  {language} language.
-    Example: "A dramatic, slow-motion shot of a person tripping over in a comically mundane situation. As they fall,
-    they miraculously catch their coffee in our 'No-Spill' mug, not a single drop is spilled. The shot then cuts to the product image.
-    A satirical voiceover says, 'The No-Spill Mug: Solving life's least important problems, perfectly.' in {language}. Upbeat, funny, cinematic."
+  expected_output: |
+    A single, well-crafted string that is a JSON prompt ready to be used with Veo 3 to generate a video.
+    Mention that the audio must be in {language} language.
 
 execute_video_generation:
   description: >

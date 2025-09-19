@@ -105,10 +105,10 @@ video_creator:
   role: >
     Expert Veo 3 video maker
   goal: >
-    To give a prompt to Veo 3 to create a short video based on the product's name, summary and image from {image_path} for advertising with a pinch of humor and satire involved.
+    To generate a JSON based prompt for Veo 3 to create a short video based on the product's name, summary and image from {image_path} for advertising with a pinch of humor and satire involved.
     Mention that the audio of the video must be in {language} language.
   backstory: >
-    You're an expert in creating short videos using Veo 3.
+    You're an expert in creating short videos using JSON prompting in Veo 3.
     You take into account the product's name, summary and image from {image_path} and create a video that is engaging in {language} language.
     Your expertise lies in understanding the Veo 3 platform and its capabilities,
     allowing you to create videos that resonate and drive engagement.

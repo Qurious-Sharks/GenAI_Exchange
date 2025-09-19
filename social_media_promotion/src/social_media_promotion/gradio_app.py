@@ -5,13 +5,11 @@ from pathlib import Path
 from datetime import datetime
 import gradio as gr
 
-# Ensure package imports work when running this file directly
 _PKG_DIR = Path(__file__).resolve().parent
 _SRC_DIR = _PKG_DIR.parent
 if str(_SRC_DIR) not in sys.path:
     sys.path.insert(0, str(_SRC_DIR))
 
-# Use a robust try/except for different execution contexts
 try:
     from social_media_promotion.main import (
         run_promotion_pipeline,
@@ -28,9 +26,8 @@ except ImportError:
     from tools.speech_tool import transcribe_speech
 
 
-# Optional Gemini LLM translation (fallback if available)
 try:
-    import google.generativeai as genai  # type: ignore
+    import google.generativeai as genai # Gemini API
 except Exception:
     genai = None
 
@@ -40,11 +37,10 @@ try:
 except Exception:
     translate_client = None
 
-
 # --- Configuration and Setup ---
 LANGUAGE_MAP = {
     "English": "en-US", "Hindi": "hi-IN", "Tamil": "ta-IN",
-    "Telugu": "te-IN", "Spanish": "es-ES",
+    "Telugu": "te-IN", "Malayalam": "ml-IN", "Urdu": "ur-IN"
 }
 IMAGES_DIR = Path(__file__).parent / "images"
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
@@ -253,7 +249,7 @@ def build_demo():
                 audio_file = gr.Audio(type="filepath", label="Record Audio", interactive=True) # RECORD ONLY
                 audio_lang = gr.Dropdown(list(LANGUAGE_MAP.keys()), value="English", label="Spoken Language")
             
-            output_language = gr.Dropdown(["English", "Hindi", "Tamil", "Telugu", "Spanish"], value="English", label="Output Language")
+            output_language = gr.Dropdown(["English", "Hindi", "Tamil", "Telugu", "Malayalam", "Urdu"], value="English", label="Output Language")
             submit_btn = gr.Button("Generate Full Promotion", variant="primary")
             out_md = gr.Markdown()
             transcript_preview = gr.Textbox(label="Transcript Used", interactive=False)
@@ -278,7 +274,7 @@ def build_demo():
                 p_audio_file = gr.Audio(type="filepath", label="Record Audio", interactive=True) # RECORD ONLY
                 p_audio_lang = gr.Dropdown(list(LANGUAGE_MAP.keys()), value="English", label="Spoken Language")
 
-            output_language_p = gr.Dropdown(["English", "Hindi", "Tamil", "Telugu", "Spanish"], value="English", label="Output Language")
+            output_language_p = gr.Dropdown(["English", "Hindi", "Tamil", "Telugu", "Malayalam", "Urdu"], value="English", label="Output Language")
             p_submit_btn = gr.Button("Get Price Analysis", variant="primary")
             p_out_md = gr.Markdown()
             p_transcript_preview = gr.Textbox(label="Transcript Used", interactive=False)
@@ -312,7 +308,7 @@ def build_demo():
                 s_story_audio = gr.Audio(type="filepath", label="Record Audio", interactive=True) # RECORD ONLY
                 s_story_lang = gr.Dropdown(list(LANGUAGE_MAP.keys()), value="English", label="Spoken Language (Story)")
 
-            output_language_s = gr.Dropdown(["English", "Hindi", "Tamil", "Telugu", "Malayalam"], value="English", label="Output Language")
+            output_language_s = gr.Dropdown(["English", "Hindi", "Tamil", "Telugu", "Malayalam", "Urdu"], value="English", label="Output Language")
             s_submit_btn = gr.Button("Create & Publish Story", variant="primary")
             s_out_md = gr.Markdown()
             s_prod_preview = gr.Textbox(label="Product Transcript Used", interactive=False)
