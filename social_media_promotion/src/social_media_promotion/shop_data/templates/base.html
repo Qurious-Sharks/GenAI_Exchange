@@ -1,23 +1,38 @@
 
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/static/styles.css" />
-    <title>{{ title or 'Shop' }}</title>
-  </head>
-  <body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or 'Artisan Marketplace' }}</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
     <header>
-      <div class="container">
-        <nav>
-          <a href="/">All Products</a>
-          <a href="/upload">Upload Product</a>
-        </nav>
-      </div>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="logo">🎨 ArtisanHub</a>
+                <div class="nav-links">
+                    <a href="/">Home</a>
+                    <a href="/products">Products</a>
+                    <a href="/login">Login</a>
+                    <a href="/admin">Admin</a>
+                </div>
+                <div class="search-bars">
+                    <form action="/search" method="get" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" name="q" placeholder="Search products..." />
+                        <button type="submit">🔍</button>
+                    </form>
+                    <form action="/search/users" method="get" style="display: flex; gap: 0.5rem;">
+                        <input type="text" name="u" placeholder="Search users..." />
+                        <button type="submit">👤</button>
+                    </form>
+                </div>
+            </nav>
+        </div>
     </header>
-    <div class="container">
-      {% block content %}{% endblock %}
-    </div>
-  </body>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
 </html>

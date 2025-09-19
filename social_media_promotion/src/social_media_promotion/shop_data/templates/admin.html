@@ -1,6 +1,103 @@
 
 {% extends 'base.html' %}
+
 {% block content %}
+<div class="container mt-4">
+    <h1>Admin Panel</h1>
+    <p>Welcome, {{ admin_user.username }}!</p>
+
+    <!-- Search Section -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Search Products</h5>
+                    <form action="/search" method="get" class="form-inline">
+                        <div class="input-group">
+                            <input type="text" name="q" class="form-control" placeholder="Search products...">
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Search Users</h5>
+                    <form action="/search/users" method="get" class="form-inline">
+                        <div class="input-group">
+                            <input type="text" name="u" class="form-control" placeholder="Search users...">
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <h3 class="mt-4">All Products</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>User</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr>
+                <td>{{ product.id }}</td>
+                <td>{{ product.name }}</td>
+                <td>₹{{ product.price }}</td>
+                <td><a href="/user/{{ product.user.id }}/products">{{ product.user.username }}</a></td>
+                <td>
+                    <form action="/admin/products/{{ product.id }}/delete" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Users Table -->
+    <h3 class="mt-4">All Users</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Username</th>
+                <th>Products</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td><a href="/user/{{ user.id }}/products">View Products ({{ user.products|length }})</a></td>
+                <td>
+                    {% if not user.is_admin %}
+                    <form action="/admin/users/{{ user.id }}/delete" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure?')">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 <h1>Admin Panel</h1>
 <p>Welcome, {{ admin_user.username }}!</p>
 

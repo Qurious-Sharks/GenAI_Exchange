@@ -1,36 +1,25 @@
 
 {% extends 'base.html' %}
 {% block content %}
-<div class="hero">
-    <h1>Welcome to ArtisanHub</h1>
-    <p>Discover unique handmade products from talented artisans around the world</p>
-    <a href="/products" class="btn">Browse Products</a>
-    <a href="/upload" class="btn" style="margin-left: 1rem;">Start Selling</a>
-</div>
 <div class="container">
-    <h2 class="page-title">Featured Products</h2>
+    <h1 class="page-title">All Products</h1>
     <div class="grid">
-        {% for p in products[:6] %}
+        {% for p in products %}
         <div class="card product">
             {% if p.image_path %}<img src="/static/uploads/{{ p.image_path | basename }}" alt="{{ p.name }}" />{% endif %}
             <h3>{{ p.name }}</h3>
             <div class="price">₹{{ p.price }}</div>
-            <p>{{ p.details[:100] }}{% if p.details|length > 100 %}...{% endif %}</p>
+            <p>{{ p.details }}</p>
             <div class="author">By {{ p.user.username }}</div>
         </div>
         {% endfor %}
         {% if products|length == 0 %}
         <div class="card" style="text-align: center; grid-column: 1/-1;">
-            <h3>No products yet</h3>
+            <h3>No products found</h3>
             <p>Be the first to showcase your amazing creations!</p>
             <a href="/upload" class="btn">Upload Product</a>
         </div>
         {% endif %}
     </div>
-    {% if products|length > 6 %}
-    <div style="text-align: center; margin: 2rem 0;">
-        <a href="/products" class="btn">View All Products</a>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

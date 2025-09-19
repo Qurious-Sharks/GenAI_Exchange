@@ -96,10 +96,10 @@ def main():
     with tab1:
         st.subheader("🎯 Full Social Media Promotion")
         st.caption("Complete promotion workflow with image/video generation and Telegram publishing.")
-        
-        with st.form("promotion_form", clear_on_submit=False):
-            user_name = st.text_input("Your Name", placeholder="e.g. Jane Doe")
-            product_name = st.text_input("Product Name", placeholder="e.g. Smart Hydration Bottle")
+
+    with st.form("promotion_form", clear_on_submit=False):
+        user_name = st.text_input("Your Name", placeholder="e.g. Jane Doe")
+        product_name = st.text_input("Product Name", placeholder="e.g. Smart Hydration Bottle")
             cost = st.text_input("Product Cost", placeholder="e.g. 50rs etc.")
             product_details = st.text_area("Product Details", placeholder="Describe features, audience, tone, platforms, etc.", height=160)
             language = st.selectbox("Language", ["English", "Hindi", "Tamil", "Telugu", "Spanish"], index=0)
@@ -115,7 +115,7 @@ def main():
             
             submitted = st.form_submit_button("Generate Full Promotion")
 
-        if submitted:
+    if submitted:
             resolved_details = product_details
             if st.session_state.get("promo_mode") == "Audio":
                 chosen_audio = audio_bytes or audio_note_upload
@@ -127,20 +127,20 @@ def main():
                     resolved_details = transcribe_speech(audio_file_path=audio_path, language=language, translate_to_english=True)
                 if not resolved_details or resolved_details.startswith("Error"):
                     st.error(resolved_details or "Transcription failed.")
-                    return
-            
+            return
+
             product_image_path = save_uploaded_image(uploaded_image) if uploaded_image else ""
 
             if not user_name or not product_name or not resolved_details:
                 st.error("Please provide Your Name, Product Name, and details (text or audio).")
             else:
                 with st.spinner("Generating promotion assets..."):
-                    try:
+            try:
                         result = _run_backend(
-                            user_name=user_name.strip(),
-                            product_name=product_name.strip(),
+                    user_name=user_name.strip(),
+                    product_name=product_name.strip(),
                             cost=int(cost) if cost.isdigit() else 0,
-                            product_image_path=product_image_path,
+                    product_image_path=product_image_path,
                             product_details=resolved_details.strip(),
                             language=language,
                         )
@@ -149,11 +149,11 @@ def main():
                             st.subheader("Output")
                             st.markdown(result)
                         elif hasattr(result, "raw") and isinstance(result.raw, str):
-                            st.subheader("Output")
-                            st.markdown(result.raw)
-                        else:
-                            st.subheader("Output (serialized)")
-                            st.json(result)
+            st.subheader("Output")
+            st.markdown(result.raw)
+        else:
+            st.subheader("Output (serialized)")
+            st.json(result)
                     except Exception as e:
                         st.error(f"Error while running the pipeline: {e}")
 

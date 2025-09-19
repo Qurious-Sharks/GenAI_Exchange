@@ -130,7 +130,7 @@ instagram_post_generator:
     If {image_path} is empty, you must generate an image prompt for Imagen to create a new one.
   allow_delegation: False
   verbose: True
-
+  
 instagram_reel_creator:
   llm: gemini/gemini-2.5-flash
   role: >

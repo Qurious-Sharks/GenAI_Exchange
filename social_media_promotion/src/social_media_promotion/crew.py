@@ -211,7 +211,7 @@ class SocialMediaPromotion():
             tools=[generate_image_with_imagen],
             verbose=True,
         )
-    
+
     @agent
     def caption_generator(self) -> Agent:
         config = self.agents_config["caption_generator"].copy()

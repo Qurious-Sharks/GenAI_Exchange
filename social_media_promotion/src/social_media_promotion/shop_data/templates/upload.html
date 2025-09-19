@@ -1,18 +1,33 @@
 
 {% extends 'base.html' %}
 {% block content %}
-<h1>Upload Product</h1>
-<div class="card">
-  <form action="/upload" method="post" enctype="multipart/form-data">
-    <input type="text" name="username" placeholder="Your Name" required />
-    <input type="text" name="name" placeholder="Product Name" required />
-    <textarea name="details" rows="4" placeholder="Product Details" required></textarea>
-    <input type="number" name="price" step="0.01" placeholder="Price (₹)" required />
-    <input type="file" name="image" accept="image/*" />
-    <button type="submit">Upload</button>
-  </form>
-  <p>Duplicate check: same user, same product name → update instead of create.</p>
-  <p>View: <a href="/">All Products</a></p>
-{% if message %}<p><strong>{{ message }}</strong></p>{% endif %}
- </div>
+<div class="container">
+    <h1 class="page-title">Sell Your Product</h1>
+    <div class="form-container">
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="username">Your Name</label>
+                <input type="text" id="username" name="username" placeholder="Enter your name" required>
+            </div>
+            <div class="form-group">
+                <label for="name">Product Name</label>
+                <input type="text" id="name" name="name" placeholder="What are you selling?" required>
+            </div>
+            <div class="form-group">
+                <label for="details">Product Description</label>
+                <textarea id="details" name="details" rows="4" placeholder="Describe your product in detail..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="price">Price (₹)</label>
+                <input type="number" id="price" name="price" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+                <label for="image">Product Image</label>
+                <input type="file" id="image" name="image" accept="image/*">
+            </div>
+            <button type="submit" class="btn" style="width: 100%;">List Product</button>
+        </form>
+        {% if message %}<p style="color: #667eea; text-align: center; margin-top: 1rem;"><strong>{{ message }}</strong></p>{% endif %}
+    </div>
+</div>
 {% endblock %}
