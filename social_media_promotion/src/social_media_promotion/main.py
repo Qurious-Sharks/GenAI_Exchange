@@ -169,9 +169,10 @@ def run_promotion_pipeline(inputs=None):
             product_name = str(inputs.get("product_name") or "").strip()
             product_details = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
             image_path = os.getenv("image_path", "")
+            cost_val = os.getenv("cost", "0")  # Get price from environment
             
             if user_name and product_name and product_details:
-                add_product_to_website(user_name, product_name, product_details, image_path)
+                add_product_to_website(user_name, product_name, product_details, image_path, cost_val)
         
         return result
     except Exception as e:

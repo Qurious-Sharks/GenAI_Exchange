@@ -11,12 +11,15 @@ from crewai.tools import tool
 from google.genai.types import Image
 
 FFMPEG_PATH = r"F:\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin"
-WEB_UPLOADS_DIR = Path(__file__).parent / "shop_data" / "static" / "uploads"
+WEB_UPLOADS_DIR = Path(__file__).parent.parent / "shop_data" / "static" / "uploads"
 
 def copy_image_to_web_dir(image_path: str) -> str:
     """Copy image from gradio images directory to web-accessible directory."""
     if not image_path or not os.path.exists(image_path):
         return ""
+    
+    # Ensure uploads directory exists
+    WEB_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     
     filename = os.path.basename(image_path)
     web_path = WEB_UPLOADS_DIR / filename
@@ -178,12 +181,12 @@ def generate_video_with_veo_simple(prompt: str) -> list[str]:
             img_dir = Path("./images")
             img_dir.mkdir(parents=True, exist_ok=True)
             generated_image_path = img_dir / f"imagen_generated_{ts}.png"
-            dum_path = copy_image_to_web_dir(str(generated_image_path))
             try:
                 image_bytes = generated_image.image_bytes
                 with open(generated_image_path, "wb") as f:
                     f.write(image_bytes)
-                print(f"Generated image saved: {generated_image_path}")
+                web_path = copy_image_to_web_dir(str(generated_image_path))
+                print(f"Generated image saved and copied: {web_path}")
 
             except Exception as img_error:
                 print(f"Error saving generated image: {img_error}")

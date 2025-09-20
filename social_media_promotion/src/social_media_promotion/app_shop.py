@@ -3,16 +3,21 @@ import secrets
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Form, UploadFile, File, Request, Depends, HTTPException, status
+from fastapi import FastAPI, Form, UploadFile, File, Request, Response, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, UniqueConstraint, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from fastapi.templating import Jinja2Templates
 
 # Setup paths
 BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "shop_data"
+
+app = FastAPI()
+templates = Jinja2Templates(directory=str(DATA_DIR / "templates"))
 DATA_DIR = BASE_DIR / "shop_data"
 STATIC_DIR = DATA_DIR / "static"
 TEMPLATES_DIR = DATA_DIR / "templates"
@@ -25,6 +30,14 @@ for d in (DATA_DIR, STATIC_DIR, TEMPLATES_DIR, IMAGES_DIR):
 engine = create_engine(f"sqlite:///{DATA_DIR}/shop.db")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+# Database dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Database dependency
 def get_db():
@@ -55,8 +68,65 @@ class Product(Base):
     user = relationship("User", back_populates="products")
     __table_args__ = (UniqueConstraint('user_id', 'name', name='unique_user_product'),)
 
+# User authentication dependency
+async def get_current_user(request: Request, db: Session = Depends(get_db)):
+    session_id = request.cookies.get("session_id")
+    if not session_id:
+        return None
+    user = db.query(User).filter(User.session_id == session_id).first()
+    if user:
+        print(f"Found user {user.username} with session {session_id}")
+    return user
+
+async def authenticate_user(username: str, password: str, db: Session):
+    print(f"Attempting to authenticate user: {username}")
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        print("User not found")
+        return None
+    if user.password != password:  # In production, use proper password hashing!
+        print("Invalid password")
+        return None
+    print(f"Authentication successful for user: {username}")
+    return user
+
+def ensure_admin_exists(db: Session):
+    admin = db.query(User).filter(User.username == "admin").first()
+    if not admin:
+        print("Creating default admin user")
+        admin = User(
+            username="admin",
+            password="admin123",  # In production, use proper password hashing!
+            is_admin=True
+        )
+        db.add(admin)
+        try:
+            db.commit()
+            db.refresh(admin)
+            print("Admin user created successfully")
+        except Exception as e:
+            print(f"Error creating admin user: {e}")
+            db.rollback()
+    return admin
+
 # Create tables
 Base.metadata.create_all(bind=engine)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request, current_user: Optional[User] = Depends(get_current_user)):
+    print(f"Root page accessed by: {current_user.username if current_user else 'anonymous'}")
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "current_user": current_user,
+            "title": "ArtisanHub - Home",
+            "products": []  # You can add products here if needed
+        }
+    )
 
 # User authentication dependency
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
@@ -64,7 +134,36 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)):
     if not session_id:
         return None
     user = db.query(User).filter(User.session_id == session_id).first()
+    if user:
+        print(f"Found user {user.username} with session {session_id}")
     return user
+
+async def authenticate_user(username: str, password: str, db: Session):
+    print(f"Attempting to authenticate user: {username}")
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        print("User not found")
+        return None
+    if user.password != password:  # In production, use proper password hashing!
+        print("Invalid password")
+        return None
+    print(f"Authentication successful for user: {username}")
+    return user
+
+# Ensure default admin user exists
+def ensure_admin_exists(db: Session):
+    admin = db.query(User).filter(User.username == "admin").first()
+    if not admin:
+        print("Creating default admin user")
+        admin = User(
+            username="admin",
+            password="admin123",  # In production, use proper password hashing!
+            is_admin=True
+        )
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+    return admin
 
 def require_admin(current_user: User = Depends(get_current_user)):
     if not current_user or not current_user.is_admin:
@@ -73,6 +172,148 @@ def require_admin(current_user: User = Depends(get_current_user)):
             detail="Admin access required"
         )
     return current_user
+
+# Startup event to ensure admin exists
+@app.on_event("startup")
+async def startup_event():
+    db = SessionLocal()
+    ensure_admin_exists(db)
+    db.close()
+
+# Login routes
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(
+    request: Request, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
+):
+    if current_user:
+        print(f"User already logged in: {current_user.username}")
+        return RedirectResponse(url="/", status_code=302)
+    
+    print("Rendering login page for anonymous user")
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "current_user": None,
+            "messages": [],
+            "title": "Login - ArtisanHub"
+        }
+    )
+
+@app.post("/login")
+async def login(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    print(f"Login attempt for user: {username}")
+    
+    try:
+        # First, ensure we have a default admin user
+        ensure_admin_exists(db)
+        
+        # Try to authenticate
+        user = await authenticate_user(username, password, db)
+        
+        if not user:
+            print("Authentication failed")
+            return templates.TemplateResponse(
+                "login.html",
+                {
+                    "request": request,
+                    "current_user": None,
+                    "messages": ["Invalid username or password"],
+                    "title": "Login - ArtisanHub"
+                }
+            )
+        
+        print(f"Authentication successful for {username}")
+        
+        # Create new session
+        session_id = secrets.token_urlsafe(32)
+        user.session_id = session_id
+        db.commit()
+        db.refresh(user)
+        
+        # Create response
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            max_age=3600,
+            secure=False,  # Set to True in production with HTTPS
+            samesite='lax',
+            path="/"
+        )
+        
+        print(f"Set session cookie for user {username}")
+        return response
+        
+    except Exception as e:
+        print(f"Error during login: {str(e)}")
+        return templates.TemplateResponse(
+            "login.html",
+            {
+                "request": request,
+                "current_user": None,
+                "messages": ["An error occurred during login. Please try again."],
+                "title": "Login - ArtisanHub"
+            }
+        )
+
+@app.get("/logout")
+async def logout(
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    print("Logout attempt")
+    if current_user:
+        print(f"Logging out user: {current_user.username}")
+        # Clear the session from database
+        current_user.session_id = None
+        db.commit()
+        db.refresh(current_user)
+    
+    # Always clear the cookie regardless of current_user
+    response = RedirectResponse(url="/login", status_code=302)
+    response.delete_cookie(
+        key="session_id",
+        path="/",  # Important: must match the path used when setting
+        httponly=True,
+        secure=False  # Match the secure setting used when setting
+    )
+    print("Cleared session cookie")
+    return response
+
+# Product deletion routes
+@app.post("/admin/products/{product_id}/delete")
+async def delete_product(
+    product_id: int,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Delete the product image if it exists
+    if product.image_path:
+        image_path = STATIC_DIR / "uploads" / product.image_path
+        try:
+            if os.path.exists(image_path):
+                os.remove(image_path)
+        except Exception as e:
+            print(f"Error deleting image: {e}")
+    
+    db.delete(product)
+    db.commit()
+    return RedirectResponse(url="/admin", status_code=302)
 import secrets
 
 BASE_DIR = Path(__file__).resolve().parent

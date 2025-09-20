@@ -15,8 +15,15 @@
                 <div class="nav-links">
                     <a href="/">Home</a>
                     <a href="/products">Products</a>
-                    <a href="/login">Login</a>
-                    <a href="/admin">Admin</a>
+                    {% if current_user %}
+                        {% if current_user.is_admin %}
+                            <a href="/admin">Admin</a>
+                        {% endif %}
+                        <a href="/user/{{ current_user.username }}">My Profile</a>
+                        <a href="/logout" class="nav-button logout">Logout ({{ current_user.username }})</a>
+                    {% else %}
+                        <a href="/login" class="nav-button login">Login</a>
+                    {% endif %}
                 </div>
                 <div class="search-bars">
                     <form action="/search" method="get" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">

@@ -2,8 +2,15 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-    <div class="login-form">
-        <h2 style="text-align: center; margin-bottom: 2rem; color: #333;">Login to ArtisanHub</h2>
+    <div class="form-container">
+        <h2 class="page-title">Login to ArtisanHub</h2>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message {% if 'error' in message.lower() %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
         <form action="/login" method="post">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -13,7 +20,7 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Login</button>
+            <button type="submit">Login</button>
         </form>
         <div style="text-align: center; margin-top: 2rem; color: #666;">
             <p>Demo accounts:</p>

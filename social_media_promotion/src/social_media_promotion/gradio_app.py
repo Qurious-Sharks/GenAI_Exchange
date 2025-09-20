@@ -60,9 +60,21 @@ def _save_file(temp_path: str, out_dir: Path, filename_prefix: str) -> str:
     filename = f"{filename_prefix}_{timestamp}{original_ext}"
     out_path = out_dir / filename
     
+    # Ensure output directory exists
+    out_dir.mkdir(parents=True, exist_ok=True)
+    
     with open(temp_path, "rb") as f_in, open(out_path, "wb") as f_out:
         f_out.write(f_in.read())
-        
+    
+    # For images, also copy to web uploads directory
+    if original_ext.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.webp']:
+        try:
+            from social_media_promotion.tools.img_tool import copy_image_to_web_dir
+            web_path = copy_image_to_web_dir(str(out_path))
+            return web_path if web_path else str(out_path)
+        except Exception as e:
+            print(f"Warning: Could not copy to web directory: {e}")
+    
     return str(out_path)
 
 def translate_text(text: str, target_language: str = "en") -> str:
