@@ -252,7 +252,7 @@ def build_demo():
                 user_name = gr.Textbox(label="Your Name")
                 product_name = gr.Textbox(label="Product Name")
                 cost = gr.Textbox(label="Product Cost (numeric)")
-            image_file = gr.Image(type="filepath", label="Product Image (optional)") # IMAGE UPLOAD ADDED
+            image_file = gr.Image(type="filepath", label="Product Image (optional) but our ads are better when images are uploaded") # IMAGE UPLOAD ADDED
             with gr.Row():
                 input_type = gr.Radio(["Text", "Audio"], value="Text", label="Input Type for Product Details")
                 translate_chk = gr.Checkbox(value=True, label="Translate to English")
@@ -303,7 +303,7 @@ def build_demo():
             with gr.Row():
                 s_user_name = gr.Textbox(label="Your Name")
                 s_product_name = gr.Textbox(label="Product Name")
-            s_image_file = gr.Image(type="filepath", label="Picture with your craft (optional)") # IMAGE UPLOAD ADDED
+            s_image_file = gr.Image(type="filepath", label="Picture with your craft(not optional)") # IMAGE UPLOAD ADDED
             s_translate_chk = gr.Checkbox(value=True, label="Translate all audio to English")
             
             gr.Markdown("### Product Details")

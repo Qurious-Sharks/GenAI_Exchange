@@ -89,8 +89,8 @@ execute_video_generation_without_image:
   agent: video_executor_without_image
   context: [generate_imagen_prompt]
   expected_output: >
-    A string containing the local file path to the generated video (e.g., 'videos/product_ad.mp4') 
-    and the local file path to the generated image (e.g., 'images/product_image.png') if the image was not provided by the user.
+    A list containing the local file path to the generated video (e.g., 'videos/product_ad.mp4') 
+    and the local file path to the generated image (e.g., 'images/product_image.png').
     The entire output must be in {language}
 
 instagram_post_task:

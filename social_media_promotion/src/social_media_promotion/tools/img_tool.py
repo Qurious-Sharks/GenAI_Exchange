@@ -11,6 +11,24 @@ from crewai.tools import tool
 from google.genai.types import Image
 
 FFMPEG_PATH = r"F:\ffmpeg\ffmpeg-master-latest-win64-gpl-shared\bin"
+WEB_UPLOADS_DIR = Path(__file__).parent / "shop_data" / "static" / "uploads"
+
+def copy_image_to_web_dir(image_path: str) -> str:
+    """Copy image from gradio images directory to web-accessible directory."""
+    if not image_path or not os.path.exists(image_path):
+        return ""
+    
+    filename = os.path.basename(image_path)
+    web_path = WEB_UPLOADS_DIR / filename
+    
+    try:
+        # Copy the file
+        shutil.copy2(image_path, web_path)
+        print(f"✅ Image copied to web directory: {web_path}")
+        return str(web_path)
+    except Exception as e:
+        print(f"⚠️ Could not copy image to web directory: {e}")
+        return image_path
 
 try:
     from google import genai
@@ -155,18 +173,18 @@ def generate_video_with_veo_simple(prompt: str) -> list[str]:
                 return [_create_fallback_video(), ""]
 
             generated_image = imagen_result.generated_images[0].image
+            image_for_video = imagen_result.generated_images[0].image
             ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
             img_dir = Path("./images")
             img_dir.mkdir(parents=True, exist_ok=True)
             generated_image_path = img_dir / f"imagen_generated_{ts}.png"
-
+            dum_path = copy_image_to_web_dir(str(generated_image_path))
             try:
                 image_bytes = generated_image.image_bytes
                 with open(generated_image_path, "wb") as f:
                     f.write(image_bytes)
                 print(f"Generated image saved: {generated_image_path}")
 
-                image_for_video = Image(image_bytes=image_bytes, mime_type="image/png")
             except Exception as img_error:
                 print(f"Error saving generated image: {img_error}")
                 return [_create_fallback_video(), ""]

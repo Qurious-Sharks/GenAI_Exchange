@@ -25,7 +25,6 @@ def copy_image_to_web_dir(image_path: str) -> str:
     if not image_path or not os.path.exists(image_path):
         return ""
     
-    # Get just the filename
     filename = os.path.basename(image_path)
     web_path = WEB_UPLOADS_DIR / filename
     
