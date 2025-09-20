@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 
 from datetime import datetime as DateTime
-from .tools.img_tool import generate_image_with_imagen, generate_video_with_veo, generate_video_with_veo_simple
+from .tools.img_tool import generate_video_with_veo, generate_video_with_veo_simple
 from .tools.telegram_tool import (
     send_text_to_channel,
     send_photo_to_channel,
@@ -34,9 +34,30 @@ search_tool = SerperDevTool(api_key=sdt)
 gapi = os.getenv("GEMINI_API_KEY")
 
 ### Pydantic models for structured outputs
+
+class Subject(BaseModel):
+    type: str = Field(description="The type of subject, e.g., animal, person, object.")
+    description: str = Field(description="A detailed description of the subject.")
+    position: str = Field(description="The position of the subject within the scene (e.g., left, right, center).")
+
+
+class ScenePrompt(BaseModel):
+    scene: str = Field(description="The main setting or environment of the scene.")
+    subjects: List[Subject] = Field(description="A list of subjects included in the scene with their details.")
+    style: str = Field(description="The artistic style in which the scene should be rendered.")
+    color_palette: List[str] = Field(description="A list of colors that define the palette of the scene.")
+    lighting: str = Field(description="The type or style of lighting in the scene.")
+    mood: str = Field(description="The overall emotional tone or feeling of the scene.")
+    background: str = Field(description="Key elements that make up the background of the scene.")
+    composition: str = Field(description="The framing or layout of the scene from the viewer's perspective.")
+
 class Captionoutput(BaseModel):
     caption: str
     contact_info: str
+
+class GenerateImageOutput(BaseModel):
+    image_url: str = Field(..., description="Local path of the generated image")
+    video_url: str = Field(..., description="Local path of the generated video")
 
 class Camera(BaseModel):
     angle: str = Field(..., description="Camera angle for the shot (e.g. medium-wide → close-up)")
@@ -128,6 +149,15 @@ wstool2 = WebsiteSearchTool(config = dict(llm = dict(
     ),
 ),),websites = "https://www.imagine.art/blogs/veo-3-json-prompting-guide")
 
+wstool3 = WebsiteSearchTool(config = dict(llm = dict(
+    provider = "google",
+    config = dict(model = "gemini/gemini-2.5-flash"),
+), embedder = dict(
+    provider = "google",
+    config = dict(
+        model = "models/gemini-embedding-001"
+    ),
+),),websites = "https://dev.to/worldlinetech/json-style-guides-for-controlled-image-generation-with-gpt-4o-and-gpt-image-1-36p")
 ###Crew definition
 @CrewBase
 class SocialMediaPromotion():
@@ -199,16 +229,7 @@ class SocialMediaPromotion():
         config['goal'] = config['goal'].format(**self._get_inputs)
         return Agent(
             config=config,
-            verbose=True,
-        )
-
-    @agent
-    def image_executor(self) -> Agent:
-        config = self.agents_config["image_executor"].copy()
-        config['goal'] = config['goal'].format(**self._get_inputs)
-        return Agent(
-            config=config,
-            tools=[generate_image_with_imagen],
+            tools = [wstool3],
             verbose=True,
         )
 
@@ -228,7 +249,6 @@ class SocialMediaPromotion():
         config['backstory'] = config['backstory'].format(**self._get_inputs)
         return Agent(
             config=config,
-            tools=[generate_image_with_imagen],
             verbose=True,
         )
 
@@ -261,6 +281,16 @@ class SocialMediaPromotion():
         return Agent(
             config=config,
             tools=[generate_video_with_veo_simple],
+            verbose=True,
+        )
+    
+    @agent
+    def video_executor_without_image(self) -> Agent:
+        config = self.agents_config["video_executor_without_image"].copy()
+        config['goal'] = config['goal'].format(**self._get_inputs)
+        return Agent(
+            config=config,
+            tools = [generate_video_with_veo_simple],
             verbose=True,
         )
 
@@ -349,16 +379,7 @@ class SocialMediaPromotion():
         config['description'] = config['description'].format(**self._get_inputs)
         if 'expected_output' in config:
             config['expected_output'] = config['expected_output'].format(**self._get_inputs)
-        return Task(config=config)
-
-    @task
-    def execute_image_generation(self) -> Task:
-        config = self.tasks_config["execute_image_generation"].copy()
-        if 'description' in config:
-            config['description'] = config['description'].format(**self._get_inputs)
-        if 'expected_output' in config:
-            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
-        return Task(config=config)
+        return Task(config=config,output_pydantic = ScenePrompt)
 
     @task
     def generate_veo_prompt(self) -> Task:
@@ -376,6 +397,14 @@ class SocialMediaPromotion():
         if 'expected_output' in config:
             config['expected_output'] = config['expected_output'].format(**self._get_inputs)
         return Task(config=config)
+
+    @task
+    def execute_video_generation_without_image(self) -> Task:
+        config = self.tasks_config["execute_video_generation_without_image"].copy()
+        config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
+        return Task(config=config,output_pydantic = Veo3PromptOutput)
 
     @task
     def instagram_post_task(self) -> Task:
@@ -439,15 +468,13 @@ class SocialMediaPromotion():
 
     @crew
     def crew_without_image(self) -> Crew:
-        """Sequence when image is NOT provided: includes image generation via Instagram post, then reel and publishing."""
+        """Sequence when image is NOT provided: includes image generation, then reel and publishing."""
         return Crew(
             agents=[
                 self.summarizer(),
                 self.caption_generator(),
                 self.product_image_generator(),
-                self.image_executor(),
-                self.video_creator(),
-                self.video_executor(),
+                self.video_executor_without_image(),
                 self.telegram_channel_publisher(),
                 self.telegram_story_publisher(),
             ],
@@ -455,9 +482,7 @@ class SocialMediaPromotion():
                 self.summary_generator(),
                 self.caption_generation(),
                 self.generate_imagen_prompt(),
-                self.execute_image_generation(),
-                self.generate_veo_prompt(),
-                self.execute_video_generation(),
+                self.execute_video_generation_without_image(),
                 self.telegram_channel_post_task(),
                 self.telegram_story_task(),
             ],

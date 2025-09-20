@@ -12,10 +12,110 @@ warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "outputs")
+IMAGES_DIR = Path(__file__).parent / "images"
+WEB_UPLOADS_DIR = Path(__file__).parent / "shop_data" / "static" / "uploads"
 
 def assign_output_files():
     """Ensure output directory exists and any output file paths are set up."""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
+    WEB_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+def copy_image_to_web_dir(image_path: str) -> str:
+    """Copy image from gradio images directory to web-accessible directory."""
+    if not image_path or not os.path.exists(image_path):
+        return ""
+    
+    # Get just the filename
+    filename = os.path.basename(image_path)
+    web_path = WEB_UPLOADS_DIR / filename
+    
+    try:
+        # Copy the file
+        shutil.copy2(image_path, web_path)
+        print(f"✅ Image copied to web directory: {web_path}")
+        return str(web_path)
+    except Exception as e:
+        print(f"⚠️ Could not copy image to web directory: {e}")
+        return image_path
+
+def add_product_to_website(user_name: str, product_name: str, product_details: str, image_path: str = "", price: str = "0"):
+    """Add a product to the website database."""
+    try:
+        # Import here to avoid circular imports
+        from sqlalchemy import create_engine, Column, Integer, String, Text, Boolean, ForeignKey, UniqueConstraint
+        from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+        from pathlib import Path
+        
+        # Database setup
+        BASE_DIR = Path(__file__).parent
+        DATA_DIR = BASE_DIR / "shop_data"
+        engine = create_engine(f"sqlite:///{DATA_DIR}/shop.db")
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        Base = declarative_base()
+        
+        # User model
+        class User(Base):
+            __tablename__ = "users"
+            id = Column(Integer, primary_key=True, index=True)
+            username = Column(String, unique=True, index=True)
+            password = Column(String)
+            is_admin = Column(Boolean, default=False)
+            session_id = Column(String, unique=True, nullable=True)
+            products = relationship("Product", back_populates="user")
+        
+        # Product model
+        class Product(Base):
+            __tablename__ = "products"
+            id = Column(Integer, primary_key=True, index=True)
+            name = Column(String, index=True)
+            details = Column(Text)
+            price = Column(String)
+            image_path = Column(String)
+            user_id = Column(Integer, ForeignKey("users.id"))
+            user = relationship("User", back_populates="products")
+            __table_args__ = (UniqueConstraint('user_id', 'name', name='unique_user_product'),)
+        
+        # Create tables
+        Base.metadata.create_all(bind=engine)
+        
+        db = SessionLocal()
+        
+        # Find or create user
+        user = db.query(User).filter(User.username == user_name).first()
+        if not user:
+            user = User(username=user_name, password="", is_admin=False)
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        # Check if product already exists
+        existing_product = db.query(Product).filter(
+            Product.user_id == user.id,
+            Product.name == product_name
+        ).first()
+        
+        if existing_product:
+            print(f"⚠️ Product '{product_name}' already exists for user '{user_name}'")
+            db.close()
+            return
+        
+        # Create product
+        product = Product(
+            name=product_name,
+            details=product_details,
+            price=price,
+            image_path=os.path.basename(image_path) if image_path else "",
+            user_id=user.id
+        )
+        
+        db.add(product)
+        db.commit()
+        db.close()
+        
+        print(f"✅ Product '{product_name}' added to website for user '{user_name}'")
+        
+    except Exception as e:
+        print(f"⚠️ Could not add product to website: {e}")
 
 def run_promotion_pipeline(inputs=None):
     """Runs the promotion workflow choosing the crew based on whether an image path is provided."""
@@ -45,7 +145,9 @@ def run_promotion_pipeline(inputs=None):
             if desc_val:
                 os.environ["product_description"] = desc_val
             if img_val:
-                os.environ["image_path"] = img_val
+                # Copy image to web directory if it exists
+                web_image_path = copy_image_to_web_dir(img_val)
+                os.environ["image_path"] = web_image_path
             if lang_val:
                 os.environ["language"] = lang_val
 
@@ -61,6 +163,17 @@ def run_promotion_pipeline(inputs=None):
             result = crew_without_image.kickoff(inputs=inputs)
         print("✅ Workflow complete.\n")
         print(result)
+        
+        # Add product to website database
+        if inputs:
+            user_name = str(inputs.get("user") or inputs.get("user_name") or "").strip()
+            product_name = str(inputs.get("product_name") or "").strip()
+            product_details = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
+            image_path = os.getenv("image_path", "")
+            
+            if user_name and product_name and product_details:
+                add_product_to_website(user_name, product_name, product_details, image_path)
+        
         return result
     except Exception as e:
         print(f"❌ Error in workflow: {str(e)}")
@@ -137,8 +250,10 @@ def run_story_advertising_pipeline(inputs=None):
             if desc_val:
                 os.environ["product_description"] = desc_val
             if img_val:
-                os.environ["image_path"] = img_val
-                print(f"DEBUG: Setting image_path to: {img_val}")
+                # Copy image to web directory if it exists
+                web_image_path = copy_image_to_web_dir(img_val)
+                os.environ["image_path"] = web_image_path
+                print(f"DEBUG: Image copied to web directory: {web_image_path}")
             else:
                 print("DEBUG: No image_path provided")
             if lang_val:
@@ -151,6 +266,17 @@ def run_story_advertising_pipeline(inputs=None):
         result = crew_story_advertising.kickoff(inputs=inputs)
         print("✅ Story advertising workflow complete.\n")
         print(result)
+        
+        # Add product to website database
+        if inputs:
+            user_name = str(inputs.get("user") or inputs.get("user_name") or "").strip()
+            product_name = str(inputs.get("product_name") or "").strip()
+            product_details = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
+            image_path = os.getenv("image_path", "")
+            
+            if user_name and product_name and product_details:
+                add_product_to_website(user_name, product_name, product_details, image_path)
+        
         return result
     except Exception as e:
         print(f"❌ Error in story advertising workflow: {str(e)}")

@@ -56,20 +56,6 @@ caption_generator:
   allow_delegation: False
   verbose: True
 
-image_executor:
-  llm: gemini/gemini-2.5-flash
-  role: >
-    Imagen Tool Operator
-  goal: >
-    To take a text prompt, use the Imagen generation tool to create an image,
-    and return the path to the saved image file.
-  backstory: >
-    You are a purely technical agent. Your only function is to receive a
-    prompt, execute the image generation tool with that prompt, and report
-    back with the resulting file path. You do not modify or critique the prompt.
-  allow_delegation: False
-  verbose: True
-
 video_executor:
   llm: gemini/gemini-2.5-flash
   role: >
@@ -78,6 +64,22 @@ video_executor:
     To take a text prompt and an optional input image path, use the Veo generation tool to
     create a video, and return the path to the saved video file.
 
+  backstory: >
+    You are a purely technical agent. Your only function is to receive a
+    prompt and an image context, execute the video generation tool, and report
+    back with the resulting file path. You are efficient and reliable.
+  allow_delegation: False
+  verbose: True
+
+video_executor_without_image:
+  llm: gemini/gemini-2.5-flash
+  role: >
+    Veo Tool Operator
+  goal: >
+    To take a text prompt and an optional input image path, use the Veo generation tool to
+    create a video, and return the path to the saved video file.
+    If the image is not provided, create an image and then based on that create a video and return the path
+    to the saved image and video file.
   backstory: >
     You are a purely technical agent. Your only function is to receive a
     prompt and an image context, execute the video generation tool, and report

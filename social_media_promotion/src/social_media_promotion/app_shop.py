@@ -62,12 +62,17 @@ Base.metadata.create_all(bind=engine)
 async def get_current_user(request: Request, db: Session = Depends(get_db)):
     session_id = request.cookies.get("session_id")
     if not session_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
+        return None
     user = db.query(User).filter(User.session_id == session_id).first()
     return user
+
+def require_admin(current_user: User = Depends(get_current_user)):
+    if not current_user or not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
 import secrets
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -395,10 +400,21 @@ ensure_template("base.html", """
                 <a href="/" class="logo">🎨 ArtisanHub</a>
                 <div class="nav-links">
                     <a href="/">Home</a>
-                    <a href="/products">Products</a>
-                    <a href="/upload">Upload</a>
-                    <a href="/login">Login</a>
-                    <a href="/admin">Admin</a>
+                    {% if not current_user or not current_user.is_admin %}
+                        <a href="/products">Products</a>
+                        <a href="/upload">Upload</a>
+                    {% endif %}
+                    {% if current_user %}
+                        {% if current_user.is_admin %}
+                            <a href="/user/{{ current_user.username }}">My Profile</a>
+                            <a href="/admin" style="display: none;">Admin Panel</a>
+                        {% else %}
+                            <a href="/user/{{ current_user.username }}">My Profile</a>
+                        {% endif %}
+                        <a href="/logout" class="btn" style="padding: 0.4rem 1rem; font-size: 0.9rem;">Logout</a>
+                    {% else %}
+                        <a href="/login" class="btn" style="padding: 0.4rem 1rem; font-size: 0.9rem;">Login</a>
+                    {% endif %}
                 </div>
                 <div class="search-bar">
                     <form action="/search" method="get" class="search-form">
@@ -547,13 +563,26 @@ ensure_template("upload.html", """
 {% endblock %}
 """)
 
-ensure_template("admin.html", """
+ensure_template("user.html", """
 {% extends 'base.html' %}
 {% block content %}
 <div class="container">
-    <h1 class="page-title">Admin Panel</h1>
+    <h1 class="page-title">
+        {{ user.username }}'s Profile
+        {% if user.is_admin %}<span class="admin-badge">Admin</span>{% endif %}
+    </h1>
+
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 1.5rem;">User Information</h2>
+        <div class="user-info">
+            <p><strong>Username:</strong> {{ user.username }}</p>
+            <p><strong>Role:</strong> {% if user.is_admin %}Administrator{% else %}Regular User{% endif %}</p>
+            <p><strong>Products:</strong> {{ products|length }} items</p>
+        </div>
+    </div>
+
     <div class="card">
-        <h2>All Products</h2>
+        <h2 style="margin-bottom: 1.5rem;">{{ user.username }}'s Products</h2>
         <div class="grid">
             {% for p in products %}
             <div class="card product">
@@ -561,15 +590,172 @@ ensure_template("admin.html", """
                 <h3>{{ p.name }}</h3>
                 <div class="price">₹{{ p.price }}</div>
                 <p>{{ p.details }}</p>
-                <div class="author">By {{ p.user.username }}</div>
-                <form action="/admin/products/{{ p.id }}/delete" method="post" style="margin-top: 1rem;">
-                    <button type="submit" class="delete-btn">Delete</button>
-                </form>
+                {% if current_user and (current_user.is_admin or current_user.id == user.id) %}
+                <div style="margin-top: 1rem;">
+                    <form action="/admin/products/{{ p.id }}/delete" method="post">
+                        <button type="submit" class="delete-btn" style="width: 100%;" onclick="return confirm('Are you sure you want to delete this product?')">Delete Product</button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
+            {% if products|length == 0 %}
+            <div class="card" style="text-align: center; grid-column: 1/-1;">
+                <h3>No products yet</h3>
+                <p>This user hasn't added any products yet.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+.user-info {
+    display: grid;
+    gap: 1rem;
+}
+.user-info p {
+    margin: 0;
+    padding: 0;
+    color: #495057;
+}
+.user-info strong {
+    color: #333;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+</style>
+{% endblock %}
+""")
+
+ensure_template("admin.html", """
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h1 class="page-title">Admin Panel</h1>
+    <p class="admin-welcome">Welcome, {{ current_user.username }}!</p>
+    
+    <!-- User Management Section -->
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 1.5rem;">User Management</h2>
+        <div class="table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Products</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>{{ u.username }}</td>
+                        <td>{% if u.is_admin %}<span class="admin-badge">Admin</span>{% else %}User{% endif %}</td>
+                        <td><a href="/user/{{ u.username }}" class="link-btn">View Products ({{ u.products|length }})</a></td>
+                        <td>
+                            {% if not u.is_admin %}
+                            <form action="/admin/users/{{ u.id }}/delete" method="post" style="display: inline;">
+                                <button type="submit" class="delete-btn" onclick="return confirm('Are you sure you want to delete this user?')">Delete</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Product Management Section -->
+    <div class="card">
+        <h2 style="margin-bottom: 1.5rem;">Product Management</h2>
+        <div class="grid">
+            {% for p in products %}
+            <div class="card product">
+                {% if p.image_path %}<img src="/static/uploads/{{ p.image_path.split('/')[-1] if '/' in p.image_path else p.image_path }}" alt="{{ p.name }}" />{% endif %}
+                <h3>{{ p.name }}</h3>
+                <div class="price">₹{{ p.price }}</div>
+                <p>{{ p.details }}</p>
+                <div class="author">
+                    By <a href="/user/{{ p.user.username }}" class="author-link">{{ p.user.username }}</a>
+                    {% if p.user.is_admin %}<span class="admin-badge">Admin</span>{% endif %}
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <form action="/admin/products/{{ p.id }}/delete" method="post" style="flex: 1;">
+                        <button type="submit" class="delete-btn" style="width: 100%;" onclick="return confirm('Are you sure you want to delete this product?')">Delete Product</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% if products|length == 0 %}
+            <div class="card" style="text-align: center; grid-column: 1/-1;">
+                <h3>No products yet</h3>
+                <p>Products added by users will appear here.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+.admin-table th,
+.admin-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+.admin-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+.link-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #e9ecef;
+    color: #495057;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+.link-btn:hover {
+    background: #dee2e6;
+    transform: translateY(-1px);
+}
+.author-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+.author-link:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+.admin-welcome {
+    text-align: center;
+    color: #495057;
+    margin-bottom: 2rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+</style>
 {% endblock %}
 """)
 
@@ -579,22 +765,54 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 UPLOADS_WEB_DIR = STATIC_DIR / "uploads"
 UPLOADS_WEB_DIR.mkdir(parents=True, exist_ok=True)
 
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    response.delete_cookie(key="session_id")
+    return response
+
 @app.get("/", response_class=HTMLResponse)
-def homepage(request: Request, db: Session = Depends(get_db)):
+async def homepage(
+    request: Request, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     products = db.query(Product).order_by(Product.id.desc()).all()
     tpl = env.get_template("index.html")
-    return tpl.render(title="ArtisanHub - Home", products=products)
+    return tpl.render(
+        title="ArtisanHub - Home",
+        products=products,
+        current_user=current_user
+    )
 
 @app.get("/products", response_class=HTMLResponse)
-def all_products(request: Request, db: Session = Depends(get_db)):
+async def all_products(
+    request: Request, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     products = db.query(Product).order_by(Product.id.desc()).all()
     tpl = env.get_template("products.html")
-    return tpl.render(title="All Products - ArtisanHub", products=products)
+    return tpl.render(
+        title="All Products - ArtisanHub",
+        products=products,
+        current_user=current_user
+    )
 
 @app.get("/login", response_class=HTMLResponse)
-def login_form(request: Request):
+async def login_form(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
+    if current_user:
+        return RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
+    
     tpl = env.get_template("login.html")
-    return tpl.render(title="Login - ArtisanHub", message=None)
+    return tpl.render(
+        title="Login - ArtisanHub",
+        message=None,
+        current_user=None
+    )
 
 @app.post("/login")
 def login_user(
@@ -628,11 +846,24 @@ def login_user(
         return tpl.render(title="Login - ArtisanHub", message="Invalid credentials")
 
 @app.get("/user/{username}", response_class=HTMLResponse)
-def user_products(username: str, request: Request, db: Session = Depends(get_db)):
+async def user_profile(
+    username: str, 
+    request: Request, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
     user = db.query(User).filter(User.username == username).first()
-    products = user.products if user else []
-    tpl = env.get_template("products.html")
-    return tpl.render(title=f"{username}'s Products - ArtisanHub", products=products)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    products = user.products
+    tpl = env.get_template("user.html")
+    return tpl.render(
+        title=f"{username}'s Profile - ArtisanHub",
+        user=user,
+        products=products,
+        current_user=current_user
+    )
 
 @app.get("/upload", response_class=HTMLResponse)
 def upload_form(request: Request):
@@ -759,17 +990,15 @@ def search_users(u: str, request: Request, db: Session = Depends(get_db)):
 async def admin_panel(
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    admin: User = Depends(require_admin)
 ):
-    if not current_user or not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
     
     products = db.query(Product).all()
     users = db.query(User).all()
     tpl = env.get_template("admin.html")
     return tpl.render(
         title="Admin Panel - ArtisanHub",
-        admin_user=current_user,
+        current_user=admin,  # Pass the admin user from the require_admin dependency
         products=products,
         users=users
     )

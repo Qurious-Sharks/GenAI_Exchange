@@ -5,7 +5,6 @@ summary_generator:
     This will serve as a quick reference for responders and content creators.
   expected_output: >
     A clear, 3-5 sentence product summary highlighting all key features and benefits.
-
   agent: summarizer
 
 price_analysis_task:
@@ -57,19 +56,6 @@ generate_imagen_prompt:
   context: [summary_generator]
   expected_output: >
     A single, well-crafted string that is a prompt ready to be used with Imagen.
-    Example: "A professional product photograph of a sleek, matte black wireless earbud case on a polished dark oak surface.
-    The lighting is soft and from the side, highlighting the product's subtle curves. The background is slightly blurred,
-    creating a sense of depth. Minimalist and modern aesthetic. 8k, photorealistic, sharp focus."
-
-execute_image_generation:
-  description: >
-    Take the prompt generated in the previous task and use the assigned tool
-    to generate an image and store it in the ./images folder. Return the file path of the created image.
-  agent: image_executor
-  context: [generate_imagen_prompt]
-  expected_output: >
-    A string containing the local file path to the generated image (e.g., 'images/product_image.png').
-  
 
 generate_veo_prompt: 
   description: >
@@ -83,6 +69,7 @@ generate_veo_prompt:
   expected_output: |
     A single, well-crafted string that is a JSON prompt ready to be used with Veo 3 to generate a humorous video with a bit of satire, promoting the product.
     Mention that the audio must be in {language} language.
+  
 
 execute_video_generation:
   description: >
@@ -93,6 +80,18 @@ execute_video_generation:
   expected_output: >
     A string containing the local file path to the generated video (e.g., 'videos/product_ad.mp4').
     The entire output must be in {language}.
+
+execute_video_generation_without_image:
+  description: >
+    Take the prompt from the previous task and image context from {image_path} and use the assigned tool
+    to generate a video and store it in the ./videos folder. Return the file path of the created video.
+    If the image is not provided then first generate an image using the prompt from the task "generate_imagen_prompt" and then use that image to generate the video.
+  agent: video_executor_without_image
+  context: [generate_imagen_prompt]
+  expected_output: >
+    A string containing the local file path to the generated video (e.g., 'videos/product_ad.mp4') 
+    and the local file path to the generated image (e.g., 'images/product_image.png') if the image was not provided by the user.
+    The entire output must be in {language}
 
 instagram_post_task:
   description: >
@@ -139,18 +138,22 @@ telegram_channel_post_task:
   description: >
     Prepare the finalized promotional content for Telegram channel posting.
     Use the image from {image_path} along with the caption to publish it to the Telgram Channel for promotion.
-    Also upload from the video ./videos to the channel.
+    If {image_path} is empty then post the image at the ./images folder.
+    Also upload from the video at ./videos to the channel.
+    If only video is provided then just post the video alone and if only the image is provided then post the image alone with the caption.
+    If both are provided then post both video and image to the story with caption.
     Publish using available Telegram channel tools (text/photo/video).
     Do this task only one successful time.
   expected_output: >
     Posts with image and caption published in the telegram channel.
     The entire output must be in {language}.
-  context: [caption_generation, execute_image_generation]
+  context: [caption_generation,execute_video_generation,execute_video_generation_without_image]
   agent: telegram_channel_publisher
 
 telegram_story_task:
   description: >
     Post story to Telegram from the video at ./videos and image at {image_path} along with its caption.
+    If {image_path} is empty then post the image at the ./images folder.
     If only video is provided then just post the video alone and if only the image is provided then post the image alone with the caption.
     If both are provided then post both video and image to the story with caption.
     Do this task only one successful time.
@@ -158,7 +161,7 @@ telegram_story_task:
     Success message after posting story with the video and its caption.
     Also include the message "Join our Telegram channel for more such products: @artpmtns" at the end of the caption.
     The entire output must be in {language}.
-  context: [execute_video_generation, caption_generation]
+  context: [execute_video_generation, caption_generation,execute_video_generation_without_image]
   agent: telegram_story_publisher
 
 telegram_story_channel_post_task:

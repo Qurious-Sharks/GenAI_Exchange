@@ -21,35 +21,6 @@ except ImportError:
 
 os.environ.setdefault("GOOGLE_GENAI_USE_VERTEXAI", "false")
 
-
-# ===============================
-# IMAGE GENERATION TOOL (Step 1)
-# ===============================
-@tool("imagen_image_generator")
-def generate_image_with_imagen(prompt: str, style: str = "photorealistic", image_path: Optional[str] = None):
-    """Generates an image from a text prompt using Imagen API."""
-    if image_path:
-        if os.path.exists(image_path):
-            return image_path
-        else:
-            raise FileNotFoundError(f"Provided image_path not found: {image_path}")
-
-    gapi = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not gapi:
-        raise ValueError("Missing GEMINI_API_KEY or GOOGLE_API_KEY")
-    if getattr(genai, "Client", None) is None:
-        raise ImportError("Install with: pip install google-genai")
-
-    client = genai.Client(api_key=gapi, vertexai=False)
-    imagen = client.models.generate_images(
-        model="imagen-4.0-generate-001",
-        prompt=f"{prompt}, style: {style}"
-    )
-    if not imagen.generated_images:
-        raise RuntimeError("Imagen API call returned no images")
-    return imagen.generated_images[0].image  # return object directly
-
-
 @tool("veo_video_generator")
 def generate_video_with_veo(
     prompt: str,
@@ -150,24 +121,22 @@ def generate_video_with_veo_simple(prompt: str) -> str:
         
         # Check if there's an uploaded image available
         image_path = os.getenv("IMAGE_PATH", "")
+        image_for_video = None
+
         if image_path and os.path.exists(image_path):
             print(f"Using uploaded image for video: {image_path}")
-            # For uploaded images, use the Image class with image_bytes
             with open(image_path, "rb") as f:
                 image_bytes = f.read()
             
-            # Determine MIME type based on file extension
+            # Determine MIME type based on extension
             mime_type = "image/jpeg"
             if image_path.lower().endswith(".png"):
                 mime_type = "image/png"
             elif image_path.lower().endswith(".webp"):
                 mime_type = "image/webp"
             
-            # Use the Image class for Veo API
-            image_for_video = Image(
-                image_bytes=image_bytes,
-                mime_type=mime_type
-            )
+            image_for_video = Image(image_bytes=image_bytes, mime_type=mime_type)
+
         else:
             # Generate a new image if none provided
             print("No uploaded image found, generating new image for video...")
@@ -180,9 +149,26 @@ def generate_video_with_veo_simple(prompt: str) -> str:
                 print("Image generation failed, using fallback")
                 return _create_fallback_video()
             
-            # For generated images, use the image object directly
+            generated_image = imagen_result.generated_images[0].image
             image_for_video = imagen_result.generated_images[0].image
-        
+            # Save generated image to .images/
+            ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            img_dir = Path("./images")
+            img_dir.mkdir(parents=True, exist_ok=True)
+            image_path = img_dir / f"imagen_generated_{ts}.png"
+
+            try:
+                # The image is already an in-memory object
+                image_bytes = generated_image.image_bytes
+                with open(image_path, "wb") as f:
+                    f.write(image_bytes)
+
+                os.environ["image_path"] = str(image_path)
+                print(f"Generated image saved: {image_path}")
+            except Exception as img_error:
+                print(f"Error saving generated image: {img_error}")
+                return _create_fallback_video()
+
         # Generate video with Veo
         print("Generating video with Veo...")
         operation = client.models.generate_videos(
@@ -222,12 +208,10 @@ def generate_video_with_veo_simple(prompt: str) -> str:
         # Download the generated video
         print(f"Downloading generated video to {output_path}")
         try:
-            # Download returns bytes directly
             video_data = client.files.download(file=video_obj.video)
             with open(output_path, 'wb') as f:
                 f.write(video_data)
             
-            # Verify the file was created and has content
             if output_path.exists() and output_path.stat().st_size > 0:
                 print(f"✅ Video successfully generated: {output_path}")
                 return str(output_path)
@@ -241,6 +225,7 @@ def generate_video_with_veo_simple(prompt: str) -> str:
     except Exception as e:
         print(f"Veo video generation failed: {e}")
         return _create_fallback_video()
+
 
 def _create_fallback_video():
     """Create a fallback video when Veo generation fails."""
