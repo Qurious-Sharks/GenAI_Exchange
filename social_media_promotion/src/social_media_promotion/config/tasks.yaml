@@ -69,6 +69,19 @@ generate_veo_prompt:
   expected_output: |
     A single, well-crafted string that is a JSON prompt ready to be used with Veo 3 to generate a humorous video with a bit of satire, promoting the product.
     Mention that the audio must be in {language} language.
+
+generate_emotional_story_veoprompt:
+  description: >
+    Using the emotional story about {user} and their {product_name} to
+    create a creative and detailed JSON based prompt for the Veo 3 text-to-video model.
+    The video should be a short advertisement (10-15 seconds) **promoting the image given by the user** not discouraging it.
+    The prompt must incorporate a touch of humor and satire to make the ad memorable and engaging.
+    Reference the style and content of the product image to ensure visual consistency.
+  agent: emotional_story_video_creator
+  context: [story_advertising_task]
+  expected_output: |
+    A single, well-crafted string that is a JSON prompt ready to be used with Veo 3 to generate an **emotional video** promoting the product.
+    Mention that the audio must be in {language} language.
   
 
 execute_video_generation:
@@ -76,7 +89,7 @@ execute_video_generation:
     Take the prompt from the previous task and image context from {image_path} and use the assigned tool
     to generate a video and store it in the ./videos folder. Return the file path of the created video.
   agent: video_executor
-  context: [generate_veo_prompt]
+  context: [generate_veo_prompt,generate_emotional_story_veoprompt]
   expected_output: >
     A string containing the local file path to the generated video (e.g., 'videos/product_ad.mp4').
     The entire output must be in {language}.
@@ -145,9 +158,9 @@ telegram_channel_post_task:
     Publish using available Telegram channel tools (text/photo/video).
     Do this task only one successful time.
   expected_output: >
-    Posts with image and caption published in the telegram channel.
+    Posts with image and video with caption published in the telegram channel.
     The entire output must be in {language}.
-  context: [caption_generation,execute_video_generation,execute_video_generation_without_image]
+  context: [caption_generation,story_advertising_task,execute_video_generation,execute_video_generation_without_image]
   agent: telegram_channel_publisher
 
 telegram_story_task:
@@ -161,34 +174,35 @@ telegram_story_task:
     Success message after posting story with the video and its caption.
     Also include the message "Join our Telegram channel for more such products: @artpmtns" at the end of the caption.
     The entire output must be in {language}.
-  context: [execute_video_generation, caption_generation,execute_video_generation_without_image]
+  context: [execute_video_generation, story_advertising_task,caption_generation,execute_video_generation_without_image]
   agent: telegram_story_publisher
 
 telegram_story_channel_post_task:
   description: >
-    Publish the emotional story about {user} and their {product_name} to the Telegram channel.
-    Use the image from {image_path} along with the story content to create an engaging post.
-    The story should be published as a channel post with the image and story text.
+    Prepare the finalized promotional content for Telegram channel posting.
+    Use the image from {image_path} along with the caption to publish it to the Telgram Channel for promotion.
+    If {image_path} is empty then post the image at the ./images folder.
+    Also upload from the video at ./videos to the channel.
+    If only video is provided then just post the video alone and if only the image is provided then post the image alone with the caption.
+    If both are provided then post both video and image to the story with caption.
+    Publish using available Telegram channel tools (text/photo/video).
     Do this task only one successful time.
-    IMPORTANT: Call the photo tool using the exact path from inputs without modification:
-    image_file={image_path}. Do not invent or change the filename.
   expected_output: >
-    Success message after posting the emotional story to the Telegram channel with the image.
-    The post should include the story content as the image caption and the image from {image_path}.
+    Success message after posting the emotional story to the Telegram channel with the image and video.
     The entire output must be in {language}.
-  context: [story_advertising_task]
+  context: [execute_video_generation,story_advertising_task,execute_video_generation_without_image]
   agent: telegram_story_channel_publisher
 
 telegram_story_story_post_task:
   description: >
-    Publish the emotional story as a Telegram story using the image from {image_path}.
-    Use the story content as the caption for the Telegram story.
-    The story should be published as a Telegram story with the image and story caption.
+    Post story to Telegram from the video at ./videos and image at {image_path} along with its caption.
+    If {image_path} is empty then post the image at the ./images folder.
+    If only video is provided then just post the video alone and if only the image is provided then post the image alone with the caption.
+    If both are provided then post both video and image to the story with caption.
     Do this task only one successful time.
   expected_output: >
-    Success message after posting the emotional story as a Telegram story with the image.
-    The story should include the emotional story content as caption and the image from {image_path}.
-    Also include the message "Join our Telegram channel to buy their products and help them: @artpmtns" at the end of the caption.
-    The entire output must be in {language}.
-  context: [story_advertising_task]
+    Success message after posting story with the video and its caption.
+    Also include the message "Join our Telegram channel for more such products: @artpmtns" at the end of the caption.
+    The entire output must be in {language}
+  context: [execute_video_generation,story_advertising_task,execute_video_generation_without_image]
   agent: telegram_story_story_publisher

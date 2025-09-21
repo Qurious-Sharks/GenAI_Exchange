@@ -208,7 +208,7 @@ def price_ui(
 def story_ui(
     prod_input_type: str, prod_text: str, prod_audio: str, prod_audio_lang_name: str,
     story_input_type: str, story_text: str, story_audio: str, story_audio_lang_name: str,
-    translate_to_english: bool, user_name: str, product_name: str, image_file: str,
+    translate_to_english: bool, user_name: str, product_name: str, cost: str, image_file: str,
     output_language: str,
 ) -> Tuple[str, str, str]:
     prod_details = ""
@@ -243,12 +243,26 @@ def story_ui(
             "user_name": user_name.strip(), "user": user_name.strip(),
             "user_story": story.strip(),
             "product_name": product_name.strip(),
+            "cost": int(cost) if cost and cost.isdigit() else 0,
             "product_details": prod_details.strip(), "product_description": prod_details.strip(),
             "product_image_path": image_path, "image_path": image_path,
             "language": output_language,
         }
         result = run_story_advertising_pipeline(inputs=inputs)
         output = getattr(result, 'raw', str(result))
+        
+        # Also send to shopping backend if available
+        try:
+            _ = requests.post("http://127.0.0.1:8010/api/products", json={
+                "user": user_name.strip(),
+                "product_name": product_name.strip(),
+                "product_details": prod_details.strip(),
+                "price": str(inputs.get("cost", "")),
+                "image_path": image_path or "",
+            }, timeout=2)
+        except Exception:
+            pass
+            
         return (output, prod_details, story)
     except Exception as e:
         return (f"Error while running story advertising: {e}", prod_details, story)
@@ -256,8 +270,11 @@ def story_ui(
 
 # --- Build Gradio Interface ---
 def build_demo():
-    with gr.Blocks(title="Social Media Promotion", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("# 📣 Social Media Promotion (Gradio)")
+    with gr.Blocks(
+        title="Social Media Promotion",
+        theme=gr.themes.Soft(),
+    ) as demo:
+        gr.Markdown("# Social Media Promotion")
 
         with gr.Tab("Full Promotion"):
             with gr.Row():
@@ -315,6 +332,7 @@ def build_demo():
             with gr.Row():
                 s_user_name = gr.Textbox(label="Your Name")
                 s_product_name = gr.Textbox(label="Product Name")
+                s_cost = gr.Textbox(label="Product Cost (numeric)")
             s_image_file = gr.Image(type="filepath", label="Picture with your craft(not optional)") # IMAGE UPLOAD ADDED
             s_translate_chk = gr.Checkbox(value=True, label="Translate all audio to English")
             
@@ -352,7 +370,7 @@ def build_demo():
                 inputs=[
                     s_prod_input_type, s_prod_text, s_prod_audio, s_prod_lang,
                     s_story_input_type, s_story_text, s_story_audio, s_story_lang,
-                    s_translate_chk, s_user_name, s_product_name, s_image_file,
+                    s_translate_chk, s_user_name, s_product_name, s_cost, s_image_file,
                     output_language_s
                 ], 
                 outputs=[s_out_md, s_prod_preview, s_story_preview])

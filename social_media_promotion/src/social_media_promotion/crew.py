@@ -264,6 +264,17 @@ class SocialMediaPromotion():
         )
 
     @agent
+    def emotional_story_video_creator(self) -> Agent:
+        config = self.agents_config["emotional_story_video_creator"].copy()
+        config['goal'] = config['goal'].format(**self._get_inputs)
+        config['backstory'] = config['backstory'].format(**self._get_inputs)
+        return Agent(
+            config=config,
+            tools=[wstool,wstool2],
+            verbose=True,
+        )
+
+    @agent
     def video_creator(self) -> Agent:
         config = self.agents_config["video_creator"].copy()
         config['goal'] = config['goal'].format(**self._get_inputs)
@@ -384,6 +395,15 @@ class SocialMediaPromotion():
     @task
     def generate_veo_prompt(self) -> Task:
         config = self.tasks_config["generate_veo_prompt"].copy()
+        if 'description' in config:
+            config['description'] = config['description'].format(**self._get_inputs)
+        if 'expected_output' in config:
+            config['expected_output'] = config['expected_output'].format(**self._get_inputs)
+        return Task(config=config,output_json = Veo3PromptOutput)
+
+    @task
+    def generate_emotional_story_veoprompt(self) -> Task:
+        config = self.tasks_config["generate_emotional_story_veoprompt"].copy()
         if 'description' in config:
             config['description'] = config['description'].format(**self._get_inputs)
         if 'expected_output' in config:
@@ -537,13 +557,17 @@ class SocialMediaPromotion():
         return Crew(
             agents=[
                 self.emotional_storyteller(),
-                self.telegram_story_channel_publisher(),
-                self.telegram_story_story_publisher(),
+                self.emotional_story_video_creator(),
+                self.video_executor(),
+                self.telegram_channel_publisher(),
+                self.telegram_story_publisher(),
             ],
             tasks=[
                 self.story_advertising_task(),
-                self.telegram_story_channel_post_task(),
-                self.telegram_story_story_post_task(),
+                self.generate_emotional_story_veoprompt(),
+                self.execute_video_generation(),
+                self.telegram_channel_post_task(),
+                self.telegram_story_task(),
             ],
             process=Process.sequential,
             verbose=True,

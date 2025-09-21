@@ -1,5 +1,6 @@
 import os
 import secrets
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -1112,57 +1113,83 @@ def upload_form(request: Request):
     return tpl.render(title="Upload Product - ArtisanHub", message=None)
 
 @app.post("/upload")
-def upload_product(
-    username: str = Form(...),
+async def upload_product(
+    request: Request,
     name: str = Form(...),
     details: str = Form(...),
-    price: str = Form(...),
+    price: float = Form(...),
     image: UploadFile = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user)
 ):
-    # Find or create user
-    user = db.query(User).filter(User.username == username).first()
-    if not user:
-        user = User(username=username, password="", is_admin=False)
-        db.add(user)
-        db.flush()
-    
-    # Handle image upload
-    image_path = None
-    if image and image.filename:
-        image_path = f"{username}_{name}_{image.filename}"
-        image_path = "".join(c for c in image_path if c.isalnum() or c in "._-")
-        full_path = IMAGES_DIR / image_path
-        with open(full_path, "wb") as f:
-            f.write(image.file.read())
-        
-        # Copy to web directory
-        web_path = UPLOADS_WEB_DIR / image_path
-        with open(web_path, "wb") as f:
-            f.write(image.file.read())
-    
-    # Check for duplicate
-    existing = db.query(Product).filter(Product.user_id == user.id, Product.name == name).first()
-    if existing:
-        existing.details = details
-        existing.price = price
-        if image_path:
-            existing.image_path = image_path
-        message = f"Updated existing product: {name}"
-    else:
-        product = Product(
-            name=name,
-            details=details,
-            price=price,
-            image_path=image_path,
-            user_id=user.id
+    """Handle product upload with proper response handling"""
+    try:
+        # Check if user is logged in
+        if not current_user:
+            return RedirectResponse(url="/login", status_code=303)
+
+        # Create upload directory if it doesn't exist
+        upload_dir = STATIC_DIR / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Handle image upload
+        image_path = None
+        if image and image.filename:
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"product_{timestamp}_{image.filename}"
+            filename = "".join(c for c in filename if c.isalnum() or c in "._-")
+            file_path = upload_dir / filename
+            
+            # Save the file
+            content = await image.read()
+            with open(file_path, "wb") as f:
+                f.write(content)
+            image_path = f"/static/uploads/{filename}"
+
+        # Create or update product
+        existing = db.query(Product).filter(Product.user_id == current_user.id, Product.name == name).first()
+        if existing:
+            existing.details = details
+            existing.price = price
+            if image_path:
+                existing.image_path = image_path
+            message = f"Updated existing product: {name}"
+        else:
+            product = Product(
+                name=name,
+                details=details,
+                price=price,
+                image_path=image_path,
+                user_id=current_user.id
+            )
+            db.add(product)
+            message = f"Created new product: {name}"
+
+        db.commit()
+
+        # Redirect to products page with success message
+        response = RedirectResponse(url="/products", status_code=303)
+        response.set_cookie(
+            key="message",
+            value=message,
+            max_age=5  # Message disappears after 5 seconds
         )
-        db.add(product)
-        message = f"Created new product: {name}"
-    
-    db.commit()
-    tpl = env.get_template("upload.html")
-    return tpl.render(title="Upload Product - ArtisanHub", message=message)
+        return response
+
+    except Exception as e:
+        print(f"Error in upload: {e}")
+        # Return to upload form with error message
+        return templates.TemplateResponse(
+            "upload.html",
+            {
+                "request": request,
+                "title": "Upload Product - ArtisanHub",
+                "current_user": current_user,
+                "error": "Failed to upload product. Please try again."
+            },
+            status_code=400
+        )
 
 @app.post("/api/products")
 def api_upload_product(

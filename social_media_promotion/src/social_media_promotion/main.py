@@ -238,8 +238,9 @@ def run_story_advertising_pipeline(inputs=None):
             desc_val = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
             img_val = str(inputs.get("image_path") or inputs.get("product_image_path") or "").strip()
             lang_val = str(inputs.get("language") or "").strip()
+            cost_val = str(inputs.get("cost") or "0").strip()
 
-            print(f"DEBUG: Input values - user: {user_val}, story: {story_val}, product: {prod_val}, desc: {desc_val}, img: {img_val}, lang: {lang_val}")
+            print(f"DEBUG: Input values - user: {user_val}, story: {story_val}, product: {prod_val}, desc: {desc_val}, img: {img_val}, lang: {lang_val}, cost: {cost_val}")
 
             if user_val:
                 os.environ["user"] = user_val
@@ -258,6 +259,8 @@ def run_story_advertising_pipeline(inputs=None):
                 print("DEBUG: No image_path provided")
             if lang_val:
                 os.environ["language"] = lang_val
+            if cost_val:
+                os.environ["cost"] = cost_val
 
         # Instantiate after env is ready
         crew_instance = SocialMediaPromotion()
@@ -273,13 +276,14 @@ def run_story_advertising_pipeline(inputs=None):
             product_name = str(inputs.get("product_name") or "").strip()
             product_details = str(inputs.get("product_description") or inputs.get("product_details") or "").strip()
             image_path = os.getenv("image_path", "")
+            cost_val = str(inputs.get("cost") or os.getenv("cost", "0")).strip()
             
             if user_name and product_name and product_details:
-                add_product_to_website(user_name, product_name, product_details, image_path)
+                add_product_to_website(user_name, product_name, product_details, image_path, cost_val)
         
         return result
     except Exception as e:
-        print(f"❌ Error in story advertising workflow: {str(e)}")
+        print(f"Error in story advertising workflow: {str(e)}")
         raise e
     finally:
         # Don't clean up images for story advertising - they need to be preserved for posting
