@@ -5,7 +5,7 @@ import json
 # CONFIG
 # ===============================
 # Use the same BOT_TOKEN from your main script
-BOT_TOKEN = "7961690843:AAEeBijvnf5Br_-yAbWrCH2HF5OKLMT1CMA"
+BOT_TOKEN = ""
 URL = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
 
 # ===============================
